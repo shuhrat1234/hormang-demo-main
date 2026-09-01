@@ -6,7 +6,7 @@ const API_BASE = (RAW_API_BASE ?? "/api").replace(/\/$/, "");
 const TOKEN_KEY = "hormang_access_token";
 
 export class ApiError extends Error {
-  constructor(message: string, public status: number) {
+  constructor(message: string, public status: number, public data?: unknown) {
     super(message);
   }
 }
@@ -74,7 +74,7 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}, _
       (data && typeof data === "object" && "error" in data ? String((data as { error: unknown }).error) : null) ||
       res.statusText ||
       "Xatolik yuz berdi";
-    throw new ApiError(message, res.status);
+    throw new ApiError(message, res.status, data);
   }
 
   return data as T;

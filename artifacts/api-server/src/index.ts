@@ -1,9 +1,16 @@
+import path from "path";
+
+if (!process.env["PORT"] || !process.env["DATABASE_URL"]) {
+  try { process.loadEnvFile?.(path.resolve(process.cwd(), ".env")); } catch {}
+  try { process.loadEnvFile?.(path.resolve(import.meta.dirname, "../../.env")); } catch {}
+}
+
 import app from "./app";
 import { startTelegramBot, startLowBalanceScheduler } from "./lib/telegram.js";
 import { isTelegramConfigured } from "./lib/env.js";
 import { attachChatWebSocket } from "./lib/chat-ws.js";
 
-const rawPort = process.env["PORT"];
+const rawPort = process.env["PORT"] || "8080";
 
 if (!rawPort) {
   throw new Error(
