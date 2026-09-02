@@ -264,7 +264,8 @@ function makeOtpKey(channel: "sms" | "email", destination: string): string {
 }
 
 function storeOtp(channel: "sms" | "email", destination: string, purpose: string): string {
-  const code = Math.floor(100_000 + Math.random() * 900_000).toString();
+  const isDev = import.meta.env.DEV || import.meta.env.MODE === "development";
+  const code = (isDev && channel === "sms") ? "000000" : Math.floor(100_000 + Math.random() * 900_000).toString();
   const store = readOtpStore();
   store[makeOtpKey(channel, destination)] = {
     code,
@@ -277,6 +278,13 @@ function storeOtp(channel: "sms" | "email", destination: string, purpose: string
 }
 
 function verifyOtpEntry(channel: "sms" | "email", destination: string, code: string, purpose: string): boolean {
+  const isDev = import.meta.env.DEV || import.meta.env.MODE === "development";
+  if (isDev && channel === "sms" && code === "000000") {
+    const store = readOtpStore();
+    delete store[makeOtpKey(channel, destination)];
+    writeLS(OTP_KEY, store);
+    return true;
+  }
   const store = readOtpStore();
   const key = makeOtpKey(channel, destination);
   const entry = store[key];
@@ -320,10 +328,15 @@ export async function sendSmsCode(
       // For "login", the backend may deliver the code to a verified email
       // instead of SMS (see /auth/sms/send) — the phone stays the account
       // lookup key either way, only the delivery channel can change.
-      return await apiFetch<{ ok: boolean; devCode?: string; channel?: "sms" | "email"; maskedDestination?: string }>(
+      const res = await apiFetch<{ ok: boolean; devCode?: string; channel?: "sms" | "email"; maskedDestination?: string }>(
         "/auth/sms/send",
         { method: "POST", auth: false, body: { phone: normalized, purpose, forceSms } },
       );
+      const isDev = import.meta.env.DEV || import.meta.env.MODE === "development";
+      if (isDev && res.channel !== "email") {
+        return { ...res, devCode: res.devCode ?? "000000" };
+      }
+      return res;
     } catch (err) {
       throwBackendError(err);
     }

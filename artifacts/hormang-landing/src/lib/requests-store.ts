@@ -264,10 +264,10 @@ export async function saveNewRequest(
     return toCustomerRequest(request);
   } catch (e) {
     if (e instanceof ApiError && e.status === 429) {
-      const body = (e as ApiError & { cooldown?: api.CooldownState }).cooldown;
+      const cooldownData = (e.data as { cooldown?: api.CooldownState } | undefined)?.cooldown;
       const err = new Error(e.message) as Error & { code?: string; cooldown?: api.CooldownState };
       err.code = "REQUEST_COOLDOWN";
-      err.cooldown = body;
+      err.cooldown = cooldownData;
       throw err;
     }
     throw e;

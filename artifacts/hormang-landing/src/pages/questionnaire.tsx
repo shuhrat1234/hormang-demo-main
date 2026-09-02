@@ -1197,11 +1197,13 @@ function SummaryScreen({
   answers,
   onSeeProviders,
   onBack,
+  submitting = false,
 }: {
   categoryId: string;
   answers: Answers;
   onSeeProviders: (photos: string[]) => void;
   onBack: () => void;
+  submitting?: boolean;
 }) {
   const { t, locale } = useI18n();
   const tt = t.misc;
@@ -1230,7 +1232,7 @@ function SummaryScreen({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <QuizHeader onBack={onBack} categoryName={catDisplayName} emoji={cat?.emoji} categoryId={cat?.id ?? null} />
+      <QuizHeader onBack={submitting ? () => {} : onBack} categoryName={catDisplayName} emoji={cat?.emoji} categoryId={cat?.id ?? null} />
       <div className="max-w-lg mx-auto px-4 py-8">
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-1">
@@ -1297,11 +1299,21 @@ function SummaryScreen({
         </div>
 
         <Button
-          onClick={() => onSeeProviders(requestPhotos)}
-          className="w-full py-4 text-base font-bold bg-blue-600 hover:bg-blue-700 rounded-2xl gap-2"
+          onClick={() => {
+            if (submitting) return;
+            onSeeProviders(requestPhotos);
+          }}
+          disabled={submitting}
+          className="w-full py-4 text-base font-bold bg-blue-600 hover:bg-blue-700 rounded-2xl gap-2 disabled:opacity-60"
         >
-          {tq.submitBtn}
-          <ChevronRight className="w-5 h-5" />
+          {submitting ? (
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <>
+              {tq.submitBtn}
+              <ChevronRight className="w-5 h-5" />
+            </>
+          )}
         </Button>
       </div>
     </div>
@@ -1379,7 +1391,7 @@ function RecommendationsScreen({
 /* ─── Main Page ──────────────────────────────────────────────────── */
 export default function QuestionnairePage() {
   const { user, loading: authLoading } = useAuth();
-  const { toast } = useToast();
+  const { toast, dismiss } = useToast();
   const { t } = useI18n();
   const tt = t.misc;
   const [, setLocation] = useLocation();
@@ -1393,6 +1405,9 @@ export default function QuestionnairePage() {
   const [answers, setAnswers] = useState<Answers>({});
   const [currentRequestId, setCurrentRequestId] = useState<string | null>(null);
   const [resumeChecked, setResumeChecked] = useState(!resume);
+  const [submitting, setSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
+  const resumeHandledRef = useRef(false);
 
   /* Coming back from a "finish survey → create account" redirect: the answers
    * were stashed pre-auth (see handleSeeProviders below); once we know who
@@ -1402,8 +1417,10 @@ export default function QuestionnairePage() {
   useEffect(() => {
     if (!resume || authLoading) return;
     if (!user) { setResumeChecked(true); return; }
+    if (resumeHandledRef.current) return;
     const pending = getPendingRequest();
     if (!pending) { setResumeChecked(true); return; }
+    resumeHandledRef.current = true;
     clearPendingRequest();
     const customerName = `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || undefined;
     (async () => {
@@ -1412,12 +1429,23 @@ export default function QuestionnairePage() {
         setCategoryId(pending.categoryId);
         setAnswers(pending.answers);
         setCurrentRequestId(req.id);
+        dismiss();
         setStage("recommendations");
       } catch (e) {
-        const err = e as Error & { code?: string };
-        toast({ title: tt.cantCreateRequest, description: err.message ?? tt.pleaseWait, variant: "destructive" });
+        const err = e as Error & { code?: string; cooldown?: CooldownState };
+        const isCooldown = err.code === "REQUEST_COOLDOWN" || err.message === "REQUEST_COOLDOWN";
+        if (isCooldown) {
+          if (err.cooldown) {
+            setCooldown(err.cooldown);
+          } else {
+            fetchRequestCooldown().then((c) => setCooldown(c)).catch(() => {});
+          }
+        } else {
+          toast({ title: tt.cantCreateRequest, description: err.message ?? tt.pleaseWait, variant: "destructive" });
+        }
+      } finally {
+        setResumeChecked(true);
       }
-      setResumeChecked(true);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resume, authLoading, user]);
@@ -1448,6 +1476,7 @@ export default function QuestionnairePage() {
   }
 
   async function handleSeeProviders(photos: string[]) {
+    if (isSubmittingRef.current || stage === "recommendations") return;
     const cat = getCategoryById(categoryId);
 
     if (!user) {
@@ -1463,18 +1492,33 @@ export default function QuestionnairePage() {
       return;
     }
 
+    isSubmittingRef.current = true;
+    setSubmitting(true);
     const customerName = `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || undefined;
     try {
       const req = await saveNewRequest(categoryId, cat?.name ?? categoryId, answers, locationFromAnswers(answers), user.id, customerName, photos.length ? photos : undefined);
       setCurrentRequestId(req.id);
+      dismiss();
       setStage("recommendations");
     } catch (e) {
-      const err = e as Error & { code?: string };
-      toast({
-        title: tt.cantCreateRequest,
-        description: err.message ?? tt.pleaseWait,
-        variant: "destructive",
-      });
+      const err = e as Error & { code?: string; cooldown?: CooldownState };
+      const isCooldown = err.code === "REQUEST_COOLDOWN" || err.message === "REQUEST_COOLDOWN";
+      if (isCooldown) {
+        if (err.cooldown) {
+          setCooldown(err.cooldown);
+        } else {
+          fetchRequestCooldown().then((c) => setCooldown(c)).catch(() => {});
+        }
+      } else {
+        toast({
+          title: tt.cantCreateRequest,
+          description: err.message ?? tt.pleaseWait,
+          variant: "destructive",
+        });
+      }
+    } finally {
+      isSubmittingRef.current = false;
+      setSubmitting(false);
     }
   }
 
@@ -1551,6 +1595,7 @@ export default function QuestionnairePage() {
             answers={answers}
             onSeeProviders={handleSeeProviders}
             onBack={() => setStage("questions")}
+            submitting={submitting}
           />
         </motion.div>
       )}
