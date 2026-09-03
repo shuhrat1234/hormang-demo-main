@@ -1130,7 +1130,7 @@ export const ru: Dict = {
     badgeBonus: "🎁 С бонусом",
     bonusTotalTpl: "+{{bonus}} бонус → итого {{total}} Tanga",
     free: "Бесплатно",
-    sumSuffix: "сум",
+    sumSuffix: "UZS",
     saveTpl: "экономия {{n}}%",
     saleEnded: "Акция завершена",
     slotsLeftTpl: "осталось {{n}} мест",

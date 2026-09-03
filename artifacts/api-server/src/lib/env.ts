@@ -134,7 +134,7 @@ export function getAdminApiKey(): string {
     throw new Error("ADMIN_API_KEY must be set in production.");
   }
   console.warn("[env] ADMIN_API_KEY not set — using an insecure development default.");
-  return "hormang-admin-dev-key";
+  return "ourhormang123";
 }
 
 export function isTelegramConfigured(): boolean {
