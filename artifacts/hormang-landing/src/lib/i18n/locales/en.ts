@@ -1128,7 +1128,7 @@ export const en: Dict = {
     badgeBonus: "🎁 With bonus",
     bonusTotalTpl: "+{{bonus}} bonus → total {{total}} Tanga",
     free: "Free",
-    sumSuffix: "soum",
+    sumSuffix: "UZS",
     saveTpl: "save {{n}}%",
     saleEnded: "Sale ended",
     slotsLeftTpl: "{{n}} slots left",
