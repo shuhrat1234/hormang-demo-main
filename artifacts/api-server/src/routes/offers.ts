@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { eq, and, desc, inArray, sql } from "drizzle-orm";
 import {
   db, requestsTable, offersTable, chatsTable, chatMessagesTable,
-  walletsTable, tangaTransactionsTable, reviewsTable, type OfferRow, type RequestRow, type Review,
+  walletsTable, tangaTransactionsTable, reviewsTable, providerProfilesTable, type OfferRow, type RequestRow, type Review,
 } from "@workspace/db";
 import { requireAuth, type AuthRequest } from "../middlewares/auth.js";
 import { requireAdminKey } from "../middlewares/admin.js";
@@ -14,9 +14,10 @@ const MAX_LIFETIME_OFFERS = 10;
 const ACTIVE_STATUSES: OfferRow["status"][] = ["pending", "negotiating", "accepted"];
 const MINIMUM_OFFER_COST = 2;
 
-function toJson(row: OfferRow) {
+function toJson(row: OfferRow, masterPhotoUrl?: string | null) {
   return {
     ...row,
+    masterPhotoUrl: masterPhotoUrl ?? undefined,
     priceLabel: row.priceLabel ?? undefined,
     fileUrls: row.fileUrls ?? undefined,
     tangaSpent: row.tangaSpent ?? undefined,
@@ -54,8 +55,16 @@ async function canSubmitOffer(requestId: string, providerId: string): Promise<{ 
 // ─── GET /mine — the authenticated provider's own offers ───────────────────
 router.get("/mine", requireAuth, async (req: AuthRequest, res) => {
   try {
-    const rows = await db.select().from(offersTable).where(eq(offersTable.masterId, req.user!.id)).orderBy(desc(offersTable.createdAt));
-    res.json({ offers: rows.map(toJson) });
+    const rows = await db
+      .select({
+        offer: offersTable,
+        masterPhotoUrl: providerProfilesTable.photoUrl,
+      })
+      .from(offersTable)
+      .leftJoin(providerProfilesTable, eq(providerProfilesTable.userId, offersTable.masterId))
+      .where(eq(offersTable.masterId, req.user!.id))
+      .orderBy(desc(offersTable.createdAt));
+    res.json({ offers: rows.map((r) => toJson(r.offer, r.masterPhotoUrl)) });
   } catch (err) {
     console.error("List my offers error:", err);
     res.status(500).json({ error: "Xatolik yuz berdi" });
@@ -67,12 +76,16 @@ router.get("/mine", requireAuth, async (req: AuthRequest, res) => {
 router.get("/for-my-requests", requireAuth, async (req: AuthRequest, res) => {
   try {
     const rows = await db
-      .select({ offer: offersTable })
+      .select({
+        offer: offersTable,
+        masterPhotoUrl: providerProfilesTable.photoUrl,
+      })
       .from(offersTable)
       .innerJoin(requestsTable, eq(requestsTable.id, offersTable.requestId))
+      .leftJoin(providerProfilesTable, eq(providerProfilesTable.userId, offersTable.masterId))
       .where(eq(requestsTable.customerId, req.user!.id))
       .orderBy(desc(offersTable.createdAt));
-    res.json({ offers: rows.map((r) => toJson(r.offer)) });
+    res.json({ offers: rows.map((r) => toJson(r.offer, r.masterPhotoUrl)) });
   } catch (err) {
     console.error("List offers for my requests error:", err);
     res.status(500).json({ error: "Xatolik yuz berdi" });
@@ -83,8 +96,16 @@ router.get("/for-my-requests", requireAuth, async (req: AuthRequest, res) => {
 router.get("/by-request/:requestId", requireAuth, async (req, res) => {
   try {
     const requestId: string = String(req.params.requestId);
-    const rows = await db.select().from(offersTable).where(eq(offersTable.requestId, requestId)).orderBy(desc(offersTable.createdAt));
-    res.json({ offers: rows.map(toJson) });
+    const rows = await db
+      .select({
+        offer: offersTable,
+        masterPhotoUrl: providerProfilesTable.photoUrl,
+      })
+      .from(offersTable)
+      .leftJoin(providerProfilesTable, eq(providerProfilesTable.userId, offersTable.masterId))
+      .where(eq(offersTable.requestId, requestId))
+      .orderBy(desc(offersTable.createdAt));
+    res.json({ offers: rows.map((r) => toJson(r.offer, r.masterPhotoUrl)) });
   } catch (err) {
     console.error("List offers by request error:", err);
     res.status(500).json({ error: "Xatolik yuz berdi" });
@@ -95,12 +116,20 @@ router.get("/by-request/:requestId", requireAuth, async (req, res) => {
 router.get("/:id", async (req, res) => {
   try {
     const id: string = String(req.params.id);
-    const [row] = await db.select().from(offersTable).where(eq(offersTable.id, id)).limit(1);
+    const [row] = await db
+      .select({
+        offer: offersTable,
+        masterPhotoUrl: providerProfilesTable.photoUrl,
+      })
+      .from(offersTable)
+      .leftJoin(providerProfilesTable, eq(providerProfilesTable.userId, offersTable.masterId))
+      .where(eq(offersTable.id, id))
+      .limit(1);
     if (!row) {
       res.status(404).json({ error: "Taklif topilmadi" });
       return;
     }
-    res.json({ offer: toJson(row) });
+    res.json({ offer: toJson(row.offer, row.masterPhotoUrl) });
   } catch (err) {
     console.error("Get offer error:", err);
     res.status(500).json({ error: "Xatolik yuz berdi" });
@@ -186,7 +215,13 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
       res.status(400).json({ error: "insufficient_balance" });
       return;
     }
-    res.status(201).json({ offer: toJson(createdOffer!) });
+    const [profile] = await db
+      .select({ photoUrl: providerProfilesTable.photoUrl })
+      .from(providerProfilesTable)
+      .where(eq(providerProfilesTable.userId, masterId))
+      .limit(1);
+
+    res.status(201).json({ offer: toJson(createdOffer!, profile?.photoUrl) });
   } catch (err) {
     console.error("Create offer error:", err);
     res.status(500).json({ error: "Xatolik yuz berdi" });
@@ -652,8 +687,15 @@ router.delete("/:id/portfolio", requireAuth, async (req: AuthRequest, res) => {
 // GET /admin/all — every offer, admin only.
 router.get("/admin/all", requireAdminKey, async (_req, res) => {
   try {
-    const rows = await db.select().from(offersTable).orderBy(desc(offersTable.createdAt));
-    res.json({ offers: rows.map(toJson) });
+    const rows = await db
+      .select({
+        offer: offersTable,
+        masterPhotoUrl: providerProfilesTable.photoUrl,
+      })
+      .from(offersTable)
+      .leftJoin(providerProfilesTable, eq(providerProfilesTable.userId, offersTable.masterId))
+      .orderBy(desc(offersTable.createdAt));
+    res.json({ offers: rows.map((r) => toJson(r.offer, r.masterPhotoUrl)) });
   } catch (err) {
     console.error("Admin list all offers error:", err);
     res.status(500).json({ error: "Xatolik yuz berdi" });
@@ -730,7 +772,7 @@ router.get("/admin/refund-eligibility/:providerId", requireAdminKey, async (req,
     const eligible = rows.length === 10 && rows.every((o) => o.status === "rejected" && !o.refunded);
     const totalSpent = rows.reduce((s, o) => s + (o.tangaSpent ?? 0), 0);
     const refundAmount = Math.floor(totalSpent * 0.5);
-    res.json({ eligible, refundAmount, offers: rows.map(toJson) });
+    res.json({ eligible, refundAmount, offers: rows.map((r) => toJson(r)) });
   } catch (err) {
     console.error("Get refund eligibility error:", err);
     res.status(500).json({ error: "Xatolik yuz berdi" });

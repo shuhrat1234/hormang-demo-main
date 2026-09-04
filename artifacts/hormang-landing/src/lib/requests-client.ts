@@ -89,6 +89,7 @@ export interface BackendOffer {
   masterName: string;
   masterInitials: string;
   masterColor: string;
+  masterPhotoUrl?: string;
   price: number;
   priceLabel?: string;
   message: string;

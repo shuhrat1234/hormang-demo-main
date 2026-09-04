@@ -349,6 +349,7 @@ export default function ChatPage() {
   }, [chat?.id]);
 
   const masterLocal = chat?.masterId ? getLocalProfile(chat.masterId) : null;
+  const masterPhotoUrl = offer?.masterPhotoUrl || masterLocal?.photoUrl;
   const isBlocked = !!(user && chat && (
     isBlockedBy(user.id, chat.masterId) || isBlockedBy(chat.masterId, user.id)
   ));
@@ -508,10 +509,17 @@ export default function ChatPage() {
           <button
             onClick={() => setShowMasterProfile(true)}
             className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-sm active:scale-95 transition-transform ring-2 ring-transparent hover:ring-blue-300 overflow-hidden"
-            style={masterLocal?.photoUrl ? {} : { background: chat.masterColor }}
+            style={masterPhotoUrl ? {} : { background: chat.masterColor }}
           >
-            {masterLocal?.photoUrl ? (
-              <img src={masterLocal.photoUrl} alt={chat.masterName} className="w-full h-full object-cover" />
+            {masterPhotoUrl ? (
+              <img
+                src={masterPhotoUrl}
+                alt={chat.masterName}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.currentTarget as HTMLElement).style.display = "none";
+                }}
+              />
             ) : (
               chat.masterInitials
             )}
@@ -683,6 +691,7 @@ export default function ChatPage() {
               avgResponseTime: chat.avgResponseTime,
               categoryName: chat.categoryName,
               categoryEmoji: chat.categoryEmoji,
+              photoUrl: masterPhotoUrl,
             }}
             onClose={() => setShowMasterProfile(false)}
           />
@@ -697,7 +706,7 @@ export default function ChatPage() {
             subjectName={chat.masterName}
             subjectInitials={chat.masterInitials}
             subjectColor={chat.masterColor}
-            subjectPhotoUrl={masterLocal?.photoUrl}
+            subjectPhotoUrl={masterPhotoUrl}
             prompt={tt.rateProvider}
             showProviderSliders
             onSubmit={handleReviewSubmit}

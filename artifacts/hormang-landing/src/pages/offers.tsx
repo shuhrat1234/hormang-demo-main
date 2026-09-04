@@ -38,6 +38,7 @@ function OfferCard({ offer, req, index, anyAccepted, onChanged }: { offer: Offer
   const isAccepted = offer.status === "accepted";
   const isRejected = offer.status === "rejected";
   const providerLocal = getLocalProfile(offer.masterId);
+  const providerPhoto = offer.masterPhotoUrl || providerLocal.photoUrl;
 
   // Can accept only if no other offer on this request is already accepted
   const canAccept = !isAccepted && !isRejected && !anyAccepted;
@@ -80,11 +81,14 @@ function OfferCard({ offer, req, index, anyAccepted, onChanged }: { offer: Offer
         <div className="p-4">
           {/* Provider info row */}
           <div className="flex items-start gap-3 mb-3">
-            {providerLocal.photoUrl ? (
+            {providerPhoto ? (
               <img
-                src={providerLocal.photoUrl}
+                src={providerPhoto}
                 alt={offer.masterName}
                 className="w-11 h-11 rounded-2xl object-cover border border-gray-200 flex-shrink-0 shadow-sm"
+                onError={(e) => {
+                  (e.currentTarget as HTMLElement).style.display = "none";
+                }}
               />
             ) : (
               <div

@@ -8,7 +8,7 @@
  * that touches shared (cross-device) data is now async.
  */
 import { getBlockedUsers } from "./report-store";
-import { getLiveProviderName } from "./local-profile";
+import { getLiveProviderName, seedProfilePhoto } from "./local-profile";
 import { emitStoreChange } from "./store-events";
 import * as api from "./requests-client";
 import { ApiError } from "./requests-client";
@@ -47,6 +47,7 @@ export interface Offer {
   masterName: string;
   masterInitials: string;
   masterColor: string;
+  masterPhotoUrl?: string;
   price: number;
   priceLabel?: string;
   message: string;
@@ -177,10 +178,17 @@ function toCustomerRequest(r: api.BackendRequest): CustomerRequest {
   return { ...r, offerCount: r.offerCount ?? 0 };
 }
 function toOffer(o: api.BackendOffer): Offer {
+  if (o.masterPhotoUrl) {
+    seedProfilePhoto(o.masterId, o.masterPhotoUrl);
+  }
   // Prefer the provider's current name over the snapshot frozen on the offer
   // at submission time — the snapshot goes stale the moment they rename
   // themselves. Falls back to the snapshot until the live name loads.
-  return { ...o, masterName: getLiveProviderName(o.masterId) ?? o.masterName };
+  return {
+    ...o,
+    masterPhotoUrl: o.masterPhotoUrl,
+    masterName: getLiveProviderName(o.masterId) ?? o.masterName,
+  };
 }
 export function toChatMessage(m: api.BackendChatMessage): ChatMessage {
   return {

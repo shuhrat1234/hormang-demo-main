@@ -321,6 +321,10 @@ router.post("/register/provider-profile", requireAuth, async (req: AuthRequest, 
         .set({ categories, bio, workingHours, preferredLocation, updatedAt: new Date() })
         .where(eq(providerProfilesTable.userId, req.user!.id))
         .returning();
+      await db
+        .update(usersTable)
+        .set({ role: "provider", updatedAt: new Date() })
+        .where(eq(usersTable.id, req.user!.id));
       res.json({ profile });
       return;
     }
@@ -329,6 +333,11 @@ router.post("/register/provider-profile", requireAuth, async (req: AuthRequest, 
       .insert(providerProfilesTable)
       .values({ userId: req.user!.id, categories, bio, workingHours, preferredLocation })
       .returning();
+
+    await db
+      .update(usersTable)
+      .set({ role: "provider", updatedAt: new Date() })
+      .where(eq(usersTable.id, req.user!.id));
 
     res.status(201).json({ profile });
   } catch (err) {
@@ -1320,6 +1329,12 @@ router.put("/provider-profile", requireAuth, async (req: AuthRequest, res) => {
         .returning();
     }
 
+    // Ensure user role is updated to provider
+    await db
+      .update(usersTable)
+      .set({ role: "provider", updatedAt: new Date() })
+      .where(eq(usersTable.id, req.user!.id));
+
     res.json({ profile });
   } catch (err) {
     console.error("Update provider profile error:", err);
@@ -1337,7 +1352,7 @@ router.get("/providers/:id", async (req, res) => {
       .where(eq(usersTable.id, id))
       .limit(1);
 
-    if (!user || user.role !== "provider") {
+    if (!user) {
       res.status(404).json({ error: "Ijrochi topilmadi" });
       return;
     }
@@ -1347,6 +1362,11 @@ router.get("/providers/:id", async (req, res) => {
       .from(providerProfilesTable)
       .where(eq(providerProfilesTable.userId, id))
       .limit(1);
+
+    if (user.role !== "provider" && !profile) {
+      res.status(404).json({ error: "Ijrochi topilmadi" });
+      return;
+    }
 
     const safeUser = { ...user, passwordHash: undefined, twoFactorCodeHash: undefined, phone: undefined };
     res.json({ user: safeUser, providerProfile: profile ?? null });

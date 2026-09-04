@@ -20,7 +20,7 @@
  */
 
 import type { SafeUser, ProviderProfile } from "./auth-client";
-import { getProviderPublicProfile } from "./auth-client";
+import { getProviderPublicProfile, getStoredProviderProfile } from "./auth-client";
 import { emitStoreChange } from "./store-events";
 import { type ProviderServiceArea, emptyProviderServiceArea, isServiceAreaEmpty } from "./matching";
 import { TOSHKENT_DISTRICTS, regionsList } from "./regions";
@@ -135,11 +135,34 @@ function ensureBackendProfileLoaded(userId: string): void {
       if (fullName) nameCache.set(userId, fullName);
       if (providerProfile) {
         backendProfileCache.set(userId, backendToLocal(providerProfile));
+      } else {
+        const stored = getStoredProviderProfile(userId);
+        if (stored) {
+          backendProfileCache.set(userId, backendToLocal(stored));
+        } else {
+          backendProfileCache.set(userId, {});
+        }
       }
       emitStoreChange();
     })
-    .catch(() => { /* not a provider yet, or fetch failed — local draft only */ })
+    .catch(() => {
+      const stored = getStoredProviderProfile(userId);
+      if (stored) {
+        backendProfileCache.set(userId, backendToLocal(stored));
+        emitStoreChange();
+      }
+    })
     .finally(() => backendProfileInFlight.delete(userId));
+}
+
+/** Seed provider photo into synchronous cache directly (e.g. from offer payload). */
+export function seedProfilePhoto(userId: string, photoUrl?: string): void {
+  if (!userId || !photoUrl) return;
+  const current = backendProfileCache.get(userId) ?? {};
+  if (current.photoUrl !== photoUrl) {
+    backendProfileCache.set(userId, { ...current, photoUrl });
+    emitStoreChange();
+  }
 }
 
 /** Live current display name for a provider. Falls back to undefined until
@@ -216,7 +239,15 @@ export function getLocalProfile(userId: string): LocalProfile {
     return {};
   }
   ensureBackendProfileLoaded(userId);
-  return { ...backendProfileCache.get(userId), ...readLocalDraft(userId) };
+  const backend = backendProfileCache.get(userId) ?? {};
+  const draft = readLocalDraft(userId);
+  const merged: LocalProfile = { ...backend };
+  for (const [k, v] of Object.entries(draft)) {
+    if (v !== undefined && v !== null && v !== "") {
+      (merged as Record<string, unknown>)[k] = v;
+    }
+  }
+  return merged;
 }
 
 export function saveLocalProfile(userId: string, data: LocalProfile): void {
