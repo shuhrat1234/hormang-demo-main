@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useI18n } from "@/contexts/i18n-context";
-import { getCategoryDisplayName, getCategoryEmoji } from "@/lib/categories";
+import { getCategoryDisplayName, getCategoryEmoji, getActiveCategories } from "@/lib/categories";
 import { CategoryIcon } from "@/components/category-icon";
 import { getRegionLabel } from "@/lib/regions";
 import { getPopularCategories, type PopularCategory } from "@/lib/popularity";
@@ -26,7 +26,7 @@ import {
 } from "@/lib/requests-store";
 import { fetchRequestCooldown } from "@/lib/requests-client";
 import { getCompletedCount } from "@/lib/completion-store";
-import { RollingCategories } from "@/components/ui/RollingCategories";
+import { RollingCategories, type RollingCategoryItem } from "@/components/ui/RollingCategories";
 import { getLocalizedText } from "@/lib/localization";
 import {
   getPublishedAnnouncements, markAnnouncementSeen, getSeenAnnouncementIds,
@@ -238,6 +238,28 @@ export default function CustomerHomePage() {
     getPopularCategories().then(setPopularCategories).catch((err) => console.error("Load popular categories failed:", err));
   }, [storeVersion]);
 
+  const rollingCategoryItems: RollingCategoryItem[] = useMemo(() => {
+    if (popularCategories.length > 0) {
+      return popularCategories.map((cat) => ({
+        categoryId: cat.categoryId,
+        name: getCategoryDisplayName(cat.categoryId, locale),
+        emoji: getCategoryEmoji(cat.categoryId),
+      }));
+    }
+    const active = getActiveCategories();
+    if (active.length > 0) {
+      return active.map((cat) => ({
+        categoryId: cat.id,
+        name: getCategoryDisplayName(cat.id, locale),
+        emoji: cat.emoji,
+      }));
+    }
+    return (t.customerHome.rollingCats ?? []).map((rc) => ({
+      name: rc.name,
+      emoji: rc.emoji,
+    }));
+  }, [popularCategories, locale, storeVersion, t.customerHome.rollingCats]);
+
   useEffect(() => {
     if (user?.id) setLocal(getLocalProfile(user.id));
   }, [user?.id, storeVersion]);
@@ -436,7 +458,7 @@ export default function CustomerHomePage() {
                 <p className="text-[10px] text-gray-400 mt-0.5">{t.customerHome.secondaryActions.categories.desc}</p>
               </div>
               <RollingCategories
-                items={t.customerHome.rollingCats}
+                items={rollingCategoryItems}
                 interval={3000}
                 onClick={() => setLocation("/questionnaire")}
               />
