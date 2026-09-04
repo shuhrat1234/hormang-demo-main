@@ -71,9 +71,21 @@ export type CategoryModel = Category;
 
 const FALLBACK_COLOR = "#3B82F6";
 
+export const DEFAULT_BUILTIN_CATEGORIES: Category[] = [
+  { id: "tamirlash",  nameLocalized: { uz: "Ta'mirlash", ru: "Ремонт", en: "Repair" }, emoji: "🔧", icon: "Wrench", color: "#3B82F6", baseCost: 0, active: true, builtIn: true, createdAt: new Date(0).toISOString() },
+  { id: "tozalash",   nameLocalized: { uz: "Tozalash", ru: "Уборка", en: "Cleaning" }, emoji: "🧹", icon: "Broom", color: "#10B981", baseCost: 0, active: true, builtIn: true, createdAt: new Date(0).toISOString() },
+  { id: "avto",       nameLocalized: { uz: "Avto xizmat", ru: "Авто услуги", en: "Auto service" }, emoji: "🚗", icon: "Car", color: "#F59E0B", baseCost: 0, active: true, builtIn: true, createdAt: new Date(0).toISOString() },
+  { id: "kochirish",  nameLocalized: { uz: "Ko'chirish / yuk", ru: "Переезд / доставка", en: "Moving / Delivery" }, emoji: "🚚", icon: "Truck", color: "#8B5CF6", baseCost: 0, active: true, builtIn: true, createdAt: new Date(0).toISOString() },
+  { id: "repetitor",  nameLocalized: { uz: "Repetitorlar", ru: "Репетиторы", en: "Tutors" }, emoji: "📚", icon: "BookOpen", color: "#EC4899", baseCost: 0, active: true, builtIn: true, createdAt: new Date(0).toISOString() },
+  { id: "tadbir",     nameLocalized: { uz: "Tadbir xizmatlari", ru: "Ивент услуги", en: "Event services" }, emoji: "🎉", icon: "Gift", color: "#F43F5E", baseCost: 0, active: true, builtIn: true, createdAt: new Date(0).toISOString() },
+  { id: "gozallik",   nameLocalized: { uz: "Go'zallik", ru: "Красота", en: "Beauty" }, emoji: "💄", icon: "Sparkle", color: "#EAB308", baseCost: 0, active: true, builtIn: true, createdAt: new Date(0).toISOString() },
+  { id: "enaga",      nameLocalized: { uz: "Enagalik", ru: "Няня", en: "Nanny" }, emoji: "👶", icon: "Baby", color: "#06B6D4", baseCost: 0, active: true, builtIn: true, createdAt: new Date(0).toISOString() },
+  { id: "ustachilik", nameLocalized: { uz: "Ustachilik", ru: "Строительство", en: "Construction" }, emoji: "🏗️", icon: "Hammer", color: "#64748B", baseCost: 0, active: true, builtIn: true, createdAt: new Date(0).toISOString() },
+];
+
 /* ─── In-memory cache ────────────────────────────────────────────── */
 
-let cache: Category[] = [];
+let cache: Category[] = [...DEFAULT_BUILTIN_CATEGORIES];
 let cacheLoaded = false;
 
 interface CategoryApiRow {

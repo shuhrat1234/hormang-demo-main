@@ -321,7 +321,7 @@ const INITIAL_CATEGORY_QUESTIONS: Record<string, Question[]> = {
 
 /* ─── In-memory cache ────────────────────────────────────────────── */
 
-let categoryQuestionsCache: Record<string, Question[]> = {};
+let categoryQuestionsCache: Record<string, Question[]> = { ...INITIAL_CATEGORY_QUESTIONS };
 let commonQuestionsCache: Question[] = DEFAULT_COMMON_QUESTIONS;
 
 /** Fetches category-specific + common questions from the server. Call on app boot and after admin mutations. */
