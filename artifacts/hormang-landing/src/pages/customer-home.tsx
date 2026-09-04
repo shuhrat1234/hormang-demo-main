@@ -559,12 +559,21 @@ export default function CustomerHomePage() {
                       onClick={() => setLocation("/chat-offers")}
                       className="flex-shrink-0 w-40 bg-white rounded-2xl border border-gray-100 card-shadow p-3.5 text-left hover:border-blue-200 active:scale-[0.98] transition-all"
                     >
-                      <div
-                        className="w-9 h-9 rounded-xl flex items-center justify-center text-white text-xs font-black mb-2.5"
-                        style={{ background: offer.masterColor || BLUE_GRAD }}
-                      >
-                        {offer.masterInitials}
-                      </div>
+                      {offer.masterPhotoUrl || getLocalProfile(offer.masterId).photoUrl ? (
+                        <img
+                          src={offer.masterPhotoUrl || getLocalProfile(offer.masterId).photoUrl}
+                          alt={offer.masterName}
+                          className="w-9 h-9 rounded-xl object-cover mb-2.5 shadow-sm"
+                          onError={(e) => { (e.currentTarget as HTMLElement).style.display = "none"; }}
+                        />
+                      ) : (
+                        <div
+                          className="w-9 h-9 rounded-xl flex items-center justify-center text-white text-xs font-black mb-2.5"
+                          style={{ background: offer.masterColor || BLUE_GRAD }}
+                        >
+                          {offer.masterInitials}
+                        </div>
+                      )}
                       <p className="font-bold text-gray-900 text-sm leading-snug truncate">{offer.masterName}</p>
                       <p className="text-xs text-gray-400 truncate mt-0.5">{getCategoryDisplayName(req?.categoryId ?? "", locale, req?.categoryName)}</p>
                       <p className="text-sm font-extrabold text-blue-600 mt-1.5">

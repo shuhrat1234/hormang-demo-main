@@ -45,6 +45,7 @@ export interface ProviderProfileData {
   avgResponseTime?: number;
   categoryName?: string;
   categoryEmoji?: string;
+  photoUrl?: string;
 }
 
 export interface CustomerProfileData {
@@ -160,6 +161,7 @@ function ProviderPreviewSheet({
   useStoreRefresh();
   const tt = t.publicProfilePreviewModal;
   const local = getLocalProfile(data.masterId);
+  const photoUrl = data.photoUrl || local.photoUrl;
   // Prefer the provider's current name — whatever the caller passed in
   // `data.masterName` may be a snapshot frozen at offer/chat creation time.
   const liveMasterName = getLiveProviderName(data.masterId) ?? data.masterName;
@@ -263,14 +265,17 @@ function ProviderPreviewSheet({
             <div className="flex flex-col items-center text-center mb-4">
               {/* Avatar */}
               <div className="relative mb-2">
-                {local.photoUrl ? (
+                {photoUrl ? (
                   <img
-                    src={local.photoUrl}
+                    src={photoUrl}
                     alt={liveMasterName}
                     className="w-32 h-32 rounded-full object-cover"
                     style={{
                       border: `3px solid ${VIOLET}`,
                       boxShadow: `0 0 0 6px hsl(262,80%,93%), 0 8px 28px rgba(139,92,246,0.22)`,
+                    }}
+                    onError={(e) => {
+                      (e.currentTarget as HTMLElement).style.display = "none";
                     }}
                   />
                 ) : (

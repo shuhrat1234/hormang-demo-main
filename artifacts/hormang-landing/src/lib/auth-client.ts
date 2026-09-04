@@ -962,6 +962,14 @@ export async function getProviderPublicProfile(id: string): Promise<{
       { auth: false },
     );
   } catch (err) {
+    const localUser = findById(id);
+    const localProfile = findProfile(id);
+    if (localUser || localProfile) {
+      return {
+        user: localUser ?? ({ id, firstName: "Ijrochi", lastName: "", role: "provider" } as SafeUser),
+        providerProfile: localProfile,
+      };
+    }
     throwBackendError(err);
   }
 }

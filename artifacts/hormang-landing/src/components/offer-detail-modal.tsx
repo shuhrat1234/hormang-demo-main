@@ -158,6 +158,7 @@ export function OfferDetailModal({ offer, onClose, readOnly = false }: OfferDeta
   const canAccept = !isAccepted && !isInProgress && !isRejected && !isCompleted && !anyAccepted;
 
   const providerLocal = getLocalProfile(offer.masterId);
+  const providerPhoto = offer.masterPhotoUrl || liveOffer.masterPhotoUrl || providerLocal.photoUrl;
 
   /* Build Q&A pairs from request (skip image answers)
      collectActiveQuestions traverses conditional branches so follow-up
@@ -276,11 +277,14 @@ export function OfferDetailModal({ offer, onClose, readOnly = false }: OfferDeta
               {/* Provider header */}
               <div className="px-4 pt-4 pb-3 border-b border-gray-100">
                 <div className="flex items-start gap-3">
-                  {providerLocal.photoUrl ? (
+                  {providerPhoto ? (
                     <img
-                      src={providerLocal.photoUrl}
+                      src={providerPhoto}
                       alt={offer.masterName}
                       className="w-12 h-12 rounded-2xl object-cover border border-gray-200 flex-shrink-0 shadow-sm"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLElement).style.display = "none";
+                      }}
                     />
                   ) : (
                     <div
@@ -570,6 +574,7 @@ export function OfferDetailModal({ offer, onClose, readOnly = false }: OfferDeta
               masterInitials: offer.masterInitials,
               masterColor: offer.masterColor,
               avgResponseTime: offer.avgResponseTime,
+              photoUrl: providerPhoto,
             }}
             onClose={() => setShowProviderProfile(false)}
           />

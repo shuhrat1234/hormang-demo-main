@@ -31,7 +31,7 @@ import { regionsList, getRegionLabel, getDistrictLabel } from "@/lib/regions";
 import { getActiveCategories, getCategoryDisplayName, migrateCategoryValuesSafe } from "@/lib/categories";
 import { CategoryIcon } from "@/components/category-icon";
 import {
-  getLocalProfile, saveLocalProfile,
+  getLocalProfile, saveLocalProfile, hasProviderAccess,
   getCompletionChecks, getCompletionPct,
   type LocalProfile, type PortfolioItem, type PortfolioAlbum, type ProviderServiceArea,
   emptyProviderServiceArea, isServiceAreaEmpty,
@@ -389,6 +389,9 @@ export default function ProfileSettingsPage() {
     setPhotoUrl(undefined);
     const currentLocal = getLocalProfile(user.id);
     saveLocalProfile(user.id, { ...currentLocal, photoUrl: undefined });
+    updateProviderProfile({ photoUrl: null }).catch((err) => {
+      console.warn("[Hormang] Background photo remove warning:", err);
+    });
   }
 
   function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -403,6 +406,9 @@ export default function ProfileSettingsPage() {
       setPhotoLoading(false);
       const currentLocal = getLocalProfile(user.id);
       saveLocalProfile(user.id, { ...currentLocal, photoUrl: newPhotoUrl });
+      updateProviderProfile({ photoUrl: newPhotoUrl }).catch((err) => {
+        console.warn("[Hormang] Background photo save warning:", err);
+      });
       console.log(`[Hormang] 📷 Photo saved (user=${user.id.slice(0, 8)})`);
     };
     reader.readAsDataURL(file);
@@ -594,6 +600,7 @@ export default function ProfileSettingsPage() {
       /* Always update the provider profile when the user is a provider —
        * even if no categories are selected — so bio and other fields are
        * persisted on the server correctly. */
+      const shouldSaveProvider = isProvider || !!providerProfile || hasProviderAccess(user, providerProfile, local) || !!photoUrl;
       const [userRes, profileRes] = await Promise.all([
         updateProfile({
           firstName: firstName.trim(),
@@ -602,7 +609,7 @@ export default function ProfileSettingsPage() {
           console.warn("[Hormang] updateProfile warning:", err);
           return { user: { ...user, firstName: firstName.trim(), lastName: lastName.trim() } };
         }),
-        isProvider
+        shouldSaveProvider
           ? updateProviderProfile({
               categories: selectedServices,
               bio: bio || undefined,
@@ -1263,6 +1270,7 @@ export default function ProfileSettingsPage() {
               masterInitials: `${(firstName[0] ?? "")}${(lastName[0] ?? "")}`.toUpperCase(),
               masterColor: VIOLET_SOLID,
               avgResponseTime: 14,
+              photoUrl: photoUrl || local.photoUrl,
             }}
           />
         )}
