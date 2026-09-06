@@ -4394,14 +4394,19 @@ function MonoPlans({ tiers, txs, reload }: { tiers: PricingTier[]; txs: TangaTx[
       {/* ── Creator / Editor panel ────────────────────────────────── */}
       <AnimatePresence>
         {showForm && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="bg-white rounded-2xl border border-amber-100 shadow-lg overflow-hidden"
-          >
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm"
+              onClick={closeForm}
+            />
+            <motion.div
+              initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
+              transition={{ type: "spring", stiffness: 300, damping: 32 }}
+              className="fixed right-0 top-0 h-full z-[61] w-full max-w-2xl bg-white shadow-2xl flex flex-col"
+            >
             {/* Form header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-amber-50 to-white">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-amber-50 to-white flex-shrink-0">
               <div>
                 <h4 className="font-extrabold text-gray-900 text-sm">{editingId ? "Rejani tahrirlash" : "Yangi Tanga rejasi"}</h4>
                 <p className="text-[11px] text-gray-400 mt-0.5">Barcha maydonlarni to'ldiring</p>
@@ -4409,7 +4414,7 @@ function MonoPlans({ tiers, txs, reload }: { tiers: PricingTier[]; txs: TangaTx[
               <button onClick={closeForm} className="p-2 rounded-xl bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"><X className="w-4 h-4" /></button>
             </div>
 
-            <div className="p-5 space-y-6">
+            <div className="flex-1 overflow-y-auto p-5 space-y-6">
               {/* Validation errors */}
               {errors.length > 0 && (
                 <div className="bg-red-50 border border-red-200 rounded-xl p-3">
@@ -4578,7 +4583,7 @@ function MonoPlans({ tiers, txs, reload }: { tiers: PricingTier[]; txs: TangaTx[
             </div>
 
             {/* Sticky save footer */}
-            <div className="flex items-center gap-3 px-5 py-4 border-t border-gray-100 bg-gray-50/60">
+            <div className="flex items-center gap-3 px-5 py-4 border-t border-gray-100 bg-gray-50/60 flex-shrink-0">
               <button onClick={save} disabled={saving} className="flex-1 py-2.5 rounded-xl bg-amber-600 text-white text-sm font-bold hover:bg-amber-700 active:scale-[.98] transition-all shadow-sm disabled:opacity-60">
                 {saving ? "Saqlanmoqda…" : editingId ? "Saqlash" : "Reja qo'shish"}
               </button>
@@ -4586,7 +4591,8 @@ function MonoPlans({ tiers, txs, reload }: { tiers: PricingTier[]; txs: TangaTx[
                 Bekor
               </button>
             </div>
-          </motion.div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </div>
