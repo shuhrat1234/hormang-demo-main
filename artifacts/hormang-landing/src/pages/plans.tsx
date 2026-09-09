@@ -128,7 +128,7 @@ function PlanCard({
 
   if (bought) {
     return (
-      <div className="bg-emerald-50 border-2 border-emerald-200 rounded-2xl p-5 flex flex-col items-center justify-center min-h-55 gap-2">
+      <div className="bg-emerald-50 border-2 border-emerald-200 rounded-2xl p-5 flex flex-col items-center justify-center h-full min-h-[300px] gap-2">
         <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center">
           <Check className="w-6 h-6 text-emerald-600" />
         </div>
@@ -140,7 +140,7 @@ function PlanCard({
 
   if (buying) {
     return (
-      <div className="bg-white border border-gray-100 rounded-2xl p-5 flex flex-col items-center justify-center min-h-55 gap-3">
+      <div className="bg-white border border-gray-100 rounded-2xl p-5 flex flex-col items-center justify-center h-full min-h-[300px] gap-3">
         <div className="w-10 h-10 rounded-full border-[3px] border-amber-400 border-t-transparent animate-spin" />
         <p className="text-xs font-semibold text-gray-400">{tt.buying}</p>
       </div>
@@ -148,24 +148,22 @@ function PlanCard({
   }
 
   return (
-    <div className={`bg-white rounded-2xl border overflow-hidden shadow-sm transition-opacity ${disabled ? "opacity-60" : "border-amber-100"}`}>
-      <div className="h-1.5 w-full" style={{ background: GOLD_GRAD }} />
-      <div className="p-4">
+    <div className={`bg-white rounded-2xl border overflow-hidden shadow-sm transition-opacity h-full flex flex-col ${disabled ? "opacity-60" : "border-amber-100"}`}>
+      <div className="h-1.5 w-full flex-shrink-0" style={{ background: GOLD_GRAD }} />
+      <div className="p-4 flex-1 flex flex-col">
         {/* Highlighting badges */}
-        {(tier.featured || tier.hotOffer || tier.bonusPlan || tierBadge) && (
-          <div className="flex flex-wrap gap-1.5 mb-2.5">
-            {tierBadge && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700">{tierBadge}</span>}
-            {tier.featured && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">{tt.badgeFeatured}</span>}
-            {tier.hotOffer && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-600">{tt.badgeHot}</span>}
-            {tier.bonusPlan && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">{tt.badgeBonus}</span>}
-          </div>
-        )}
+        <div className="min-h-[26px] mb-2.5 flex flex-wrap gap-1.5 items-start">
+          {tierBadge && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700">{tierBadge}</span>}
+          {tier.featured && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">{tt.badgeFeatured}</span>}
+          {tier.hotOffer && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-600">{tt.badgeHot}</span>}
+          {tier.bonusPlan && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">{tt.badgeBonus}</span>}
+        </div>
 
         {/* Header */}
         <div className="flex items-start justify-between gap-2 mb-3">
-          <div>
+          <div className="min-w-0">
             <p className="font-extrabold text-sm text-gray-900">{tierName}</p>
-            {tierDesc && <p className="text-[11px] text-gray-400 mt-0.5 leading-relaxed">{tierDesc}</p>}
+            {tierDesc && <p className="text-[11px] text-gray-400 mt-0.5 leading-relaxed line-clamp-2">{tierDesc}</p>}
           </div>
           {tier.bonusTokens > 0 && (
             <span className="shrink-0 flex items-center gap-0.5 text-[10px] font-bold text-white bg-emerald-500 px-2 py-0.5 rounded-full whitespace-nowrap">
@@ -207,45 +205,48 @@ function PlanCard({
           )}
         </div>
 
-        {/* Campaign remaining slots */}
-        {saleActive && slotsLeft !== null && (
-          <div className="flex items-center gap-1.5 mb-2 px-2.5 py-1.5 bg-orange-50 rounded-xl border border-orange-100">
-            <span className="text-[10px] font-black text-orange-600">🔥</span>
-            <span className="text-[11px] font-bold text-orange-700">{tFormat(tt.slotsLeftTpl, { n: slotsLeft })}</span>
-          </div>
-        )}
+        {/* Flexible middle space */}
+        <div className="flex-1 flex flex-col justify-end">
+          {/* Campaign remaining slots */}
+          {saleActive && slotsLeft !== null && (
+            <div className="flex items-center gap-1.5 mb-2 px-2.5 py-1.5 bg-orange-50 rounded-xl border border-orange-100">
+              <span className="text-[10px] font-black text-orange-600">🔥</span>
+              <span className="text-[11px] font-bold text-orange-700">{tFormat(tt.slotsLeftTpl, { n: slotsLeft })}</span>
+            </div>
+          )}
 
-        {/* Per-user limit info */}
-        {perUserLimit > 0 && !userLimitHit && userRemaining !== null && (
-          <div className="flex items-center gap-1.5 mb-2 px-2.5 py-1.5 bg-blue-50 rounded-xl border border-blue-100">
-            <span className="text-[10px] font-black text-blue-600">👤</span>
-            <span className="text-[11px] font-bold text-blue-700">{tFormat(tt.userQuotaTpl, { n: userRemaining })}</span>
-          </div>
-        )}
-        {userLimitHit && (
-          <div className="mb-2 px-2.5 py-1.5 bg-gray-50 rounded-xl border border-gray-100 text-[11px] font-bold text-gray-500 text-center">
-            {tt.userLimitReached}
-          </div>
-        )}
+          {/* Per-user limit info */}
+          {perUserLimit > 0 && !userLimitHit && userRemaining !== null && (
+            <div className="flex items-center gap-1.5 mb-2 px-2.5 py-1.5 bg-blue-50 rounded-xl border border-blue-100">
+              <span className="text-[10px] font-black text-blue-600">👤</span>
+              <span className="text-[11px] font-bold text-blue-700">{tFormat(tt.userQuotaTpl, { n: userRemaining })}</span>
+            </div>
+          )}
+          {userLimitHit && (
+            <div className="mb-2 px-2.5 py-1.5 bg-gray-50 rounded-xl border border-gray-100 text-[11px] font-bold text-gray-500 text-center">
+              {tt.userLimitReached}
+            </div>
+          )}
 
-        {/* Countdown */}
-        {countdown && !isExpired && (
-          <div className="flex items-center gap-1.5 mb-2 px-2.5 py-1.5 bg-amber-50 rounded-xl border border-amber-100">
-            <Timer className="w-3 h-3 text-amber-500 shrink-0" />
-            <span className="text-[11px] font-bold text-amber-700">{tFormat(tt.countdownLeft, { label: countdown })}</span>
-          </div>
-        )}
-        {isExpired && tier.validUntil && (
-          <div className="mb-2 px-2.5 py-1.5 bg-gray-50 rounded-xl border border-gray-100 text-[11px] font-bold text-gray-400 text-center">
-            {tt.expired}
-          </div>
-        )}
+          {/* Countdown */}
+          {countdown && !isExpired && (
+            <div className="flex items-center gap-1.5 mb-2 px-2.5 py-1.5 bg-amber-50 rounded-xl border border-amber-100">
+              <Timer className="w-3 h-3 text-amber-500 shrink-0" />
+              <span className="text-[11px] font-bold text-amber-700">{tFormat(tt.countdownLeft, { label: countdown })}</span>
+            </div>
+          )}
+          {isExpired && tier.validUntil && (
+            <div className="mb-2 px-2.5 py-1.5 bg-gray-50 rounded-xl border border-gray-100 text-[11px] font-bold text-gray-400 text-center">
+              {tt.expired}
+            </div>
+          )}
+        </div>
 
-        {/* Buy button */}
+        {/* Buy button at the bottom */}
         <button
           onClick={onBuy}
           disabled={disabled}
-          className="w-full h-10 rounded-xl font-bold text-sm text-white transition-all active:scale-[.98] disabled:opacity-40 disabled:cursor-not-allowed shadow-sm mt-1"
+          className="w-full h-10 rounded-xl font-bold text-sm text-white transition-all active:scale-[.98] disabled:opacity-40 disabled:cursor-not-allowed shadow-sm mt-3 flex-shrink-0"
           style={{ background: disabled ? "#d1d5db" : GOLD_DARK }}
         >
           {userLimitHit ? tt.limitReachedBtn : tt.buyBtn}
@@ -432,6 +433,7 @@ export default function PlansPage() {
               {sortedTiers.map((tier, i) => (
                 <motion.div
                   key={tier.id}
+                  className="h-full flex flex-col"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.06 }}
