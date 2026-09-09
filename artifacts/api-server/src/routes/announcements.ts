@@ -6,16 +6,29 @@ import { requireAdminKey } from "../middlewares/admin.js";
 const router: IRouter = Router();
 
 function toJson(row: AnnouncementRow) {
+  const titleLoc: { uz: string; ru?: string; en?: string } = { uz: row.titleUz };
+  if (row.titleRu) titleLoc.ru = row.titleRu;
+  if (row.titleEn) titleLoc.en = row.titleEn;
+
+  const contentLoc: { uz: string; ru?: string; en?: string } = { uz: row.contentUz };
+  if (row.contentRu) contentLoc.ru = row.contentRu;
+  if (row.contentEn) contentLoc.en = row.contentEn;
+
+  const ctaLoc: { uz?: string; ru?: string; en?: string } = {};
+  if (row.ctaTextUz) ctaLoc.uz = row.ctaTextUz;
+  if (row.ctaTextRu) ctaLoc.ru = row.ctaTextRu;
+  if (row.ctaTextEn) ctaLoc.en = row.ctaTextEn;
+
   return {
     id: row.id,
     type: row.type,
     title: row.titleUz,
-    titleLocalized: row.titleRu ? { uz: row.titleUz, ru: row.titleRu } : undefined,
+    titleLocalized: (titleLoc.ru || titleLoc.en) ? titleLoc : undefined,
     content: row.contentUz,
-    contentLocalized: row.contentRu ? { uz: row.contentUz, ru: row.contentRu } : undefined,
+    contentLocalized: (contentLoc.ru || contentLoc.en) ? contentLoc : undefined,
     image: row.image ?? undefined,
     ctaText: row.ctaTextUz ?? undefined,
-    ctaTextLocalized: row.ctaTextRu ? { uz: row.ctaTextUz ?? undefined, ru: row.ctaTextRu } : undefined,
+    ctaTextLocalized: Object.keys(ctaLoc).length > 0 ? ctaLoc : undefined,
     ctaLink: row.ctaLink ?? undefined,
     target: row.target,
     isPinned: row.isPinned,
@@ -30,12 +43,12 @@ function toJson(row: AnnouncementRow) {
 interface AnnouncementBody {
   type?: "news" | "event";
   title?: string;
-  titleLocalized?: { uz?: string; ru?: string };
+  titleLocalized?: { uz?: string; ru?: string; en?: string };
   content?: string;
-  contentLocalized?: { uz?: string; ru?: string };
+  contentLocalized?: { uz?: string; ru?: string; en?: string };
   image?: string;
   ctaText?: string;
-  ctaTextLocalized?: { uz?: string; ru?: string };
+  ctaTextLocalized?: { uz?: string; ru?: string; en?: string };
   ctaLink?: string;
   target?: "all" | "providers" | "customers";
   isPinned?: boolean;
@@ -89,11 +102,14 @@ router.post("/", requireAdminKey, async (req, res) => {
         type: body.type,
         titleUz: body.title.trim(),
         titleRu: body.titleLocalized?.ru?.trim() || null,
+        titleEn: body.titleLocalized?.en?.trim() || null,
         contentUz: body.content.trim(),
         contentRu: body.contentLocalized?.ru?.trim() || null,
+        contentEn: body.contentLocalized?.en?.trim() || null,
         image: body.image?.trim() || null,
         ctaTextUz: body.ctaText?.trim() || null,
         ctaTextRu: body.ctaTextLocalized?.ru?.trim() || null,
+        ctaTextEn: body.ctaTextLocalized?.en?.trim() || null,
         ctaLink: body.ctaLink?.trim() || null,
         target: body.target,
         isPinned: body.isPinned ?? false,
@@ -123,11 +139,14 @@ router.put("/:id", requireAdminKey, async (req, res) => {
         type: body.type,
         titleUz: body.title.trim(),
         titleRu: body.titleLocalized?.ru?.trim() || null,
+        titleEn: body.titleLocalized?.en?.trim() || null,
         contentUz: body.content.trim(),
         contentRu: body.contentLocalized?.ru?.trim() || null,
+        contentEn: body.contentLocalized?.en?.trim() || null,
         image: body.image?.trim() || null,
         ctaTextUz: body.ctaText?.trim() || null,
         ctaTextRu: body.ctaTextLocalized?.ru?.trim() || null,
+        ctaTextEn: body.ctaTextLocalized?.en?.trim() || null,
         ctaLink: body.ctaLink?.trim() || null,
         target: body.target,
         isPinned: body.isPinned ?? false,

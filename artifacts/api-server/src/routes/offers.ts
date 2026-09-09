@@ -248,6 +248,18 @@ router.patch("/:id/status", requireAuth, async (req: AuthRequest, res) => {
       return;
     }
 
+    if (offer.status !== "pending") {
+      res.status(400).json({
+        error: `Taklif allaqachon ${offer.status === "rejected" ? "rad etilgan" : offer.status === "accepted" ? "qabul qilingan" : offer.status}. Faqat kutilayotgan taklif holatini o'zgartirish mumkin.`,
+      });
+      return;
+    }
+
+    if (status === "accepted" && request.status !== "open") {
+      res.status(400).json({ error: "So'rov allaqachon yopilgan yoki boshqa ijrochi tanlangan" });
+      return;
+    }
+
     await db.transaction(async (tx) => {
       await tx.update(offersTable).set({ status }).where(eq(offersTable.id, id));
 

@@ -546,7 +546,7 @@ export async function getRequestsWithZeroOffers(
   selectedCategories: string[] = [], serviceAreas: string[] = [], providerId: string = "", serviceAreaV2?: ProviderServiceArea,
 ): Promise<ProviderRequest[]> {
   return (await getMatchingRequests(selectedCategories, serviceAreas, providerId, serviceAreaV2))
-    .filter((r) => r.status !== "ignored" && r.offerCount === 0);
+    .filter((r) => r.status === "open" && (r.offerCount ?? 0) === 0);
 }
 
 /* ─── Chat creation is now handled server-side as part of offer submission

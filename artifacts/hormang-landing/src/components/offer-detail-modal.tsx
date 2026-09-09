@@ -111,12 +111,13 @@ function timeAgo(
 interface OfferDetailModalProps {
   offer: Offer;
   onClose: () => void;
+  onStatusChange?: (status: "accepted" | "rejected") => void;
   /** When true: hides all action buttons (Chat, Accept, Reject) and
    *  provider-profile navigation. Used in admin and provider history views. */
   readOnly?: boolean;
 }
 
-export function OfferDetailModal({ offer, onClose, readOnly = false }: OfferDetailModalProps) {
+export function OfferDetailModal({ offer, onClose, onStatusChange, readOnly = false }: OfferDetailModalProps) {
   useStoreRefresh();
   const [, setLocation] = useLocation();
   const [showProviderProfile, setShowProviderProfile] = useState(false);
@@ -215,12 +216,14 @@ export function OfferDetailModal({ offer, onClose, readOnly = false }: OfferDeta
   async function confirmAccept() {
     await updateOfferStatus(offer.id, "accepted");
     setShowConfirm(false);
+    onStatusChange?.("accepted");
     onClose();
   }
 
   async function reject() {
     await updateOfferStatus(offer.id, "rejected");
     load();
+    onStatusChange?.("rejected");
   }
 
   return (

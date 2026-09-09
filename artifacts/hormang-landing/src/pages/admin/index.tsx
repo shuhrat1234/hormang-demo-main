@@ -30,7 +30,7 @@ import {
   Bell, Menu, ChevronLeft, Plus, MapPin, Clock, Wallet,
   Store, LayoutGrid, TriangleAlert, ChevronDown, ChevronUp,
   Flag, Tag, Star, UserCheck, Zap, Activity, StickyNote, Download, Gift,
-  BadgeCheck, Edit3, Save, Loader2, Languages,
+  BadgeCheck, Edit3, Save, Loader2, Languages, GripVertical,
 } from "lucide-react";
 import {
   getAllCategories as getAllCategoriesFromStore,
@@ -40,7 +40,7 @@ import {
 } from "@/lib/categories";
 import { markAdminAuthenticated, AdminApiError, adminFetch, translateTexts } from "@/lib/admin-client";
 import {
-  fetchPricingTiers, createPricingTier, updatePricingTier, setPricingTierActive, deletePricingTier,
+  fetchPricingTiers, createPricingTier, updatePricingTier, setPricingTierActive, deletePricingTier, reorderPricingTiers,
   fetchAdminWallets, fetchAllWalletTransactions, fetchWalletTransactions, adjustWalletBalance as adjustWalletBalanceBackend,
   fetchAdminUsers, setUserSuspended as setUserSuspendedBackend, setUserVerified as setUserVerifiedBackend,
   setUserFlagCountBackend, setUserTagsBackend, addUserNoteBackend, removeUserNoteBackend, deleteUserBackend,
@@ -177,6 +177,7 @@ interface PricingTier {
   desc: string; color: string; active: boolean;
   nameLocalized?: LocalizedText;
   descLocalized?: LocalizedText;
+  sortOrder?: number;
 }
 interface LocalProfile {
   userId: string; name: string; bio?: string; phone?: string;
@@ -3751,12 +3752,22 @@ function backendTierToLocal(t: BackendPricingTier): PricingTier {
     hotOffer: t.hotOffer || undefined,
     bonusPlan: t.bonusPlan || undefined,
     badge: t.badgeUz ?? undefined,
-    badgeLocalized: t.badgeRu && t.badgeRu !== t.badgeUz ? { ru: t.badgeRu } : undefined,
+    badgeLocalized: {
+      ...(t.badgeRu ? { ru: t.badgeRu } : {}),
+      ...(t.badgeEn ? { en: t.badgeEn } : {}),
+    },
     desc: t.descUz ?? "",
-    descLocalized: t.descRu && t.descRu !== t.descUz ? { ru: t.descRu } : undefined,
-    nameLocalized: t.nameRu && t.nameRu !== t.nameUz ? { ru: t.nameRu } : undefined,
+    descLocalized: {
+      ...(t.descRu ? { ru: t.descRu } : {}),
+      ...(t.descEn ? { en: t.descEn } : {}),
+    },
+    nameLocalized: {
+      ...(t.nameRu ? { ru: t.nameRu } : {}),
+      ...(t.nameEn ? { en: t.nameEn } : {}),
+    },
     color: t.color ?? "bg-amber-50 text-amber-700",
     active: t.active,
+    sortOrder: t.sortOrder,
   };
 }
 function backendWalletsToProviders(wallets: BackendWallet[], referrals: BackendReferral[] = []): ProviderSummary[] {
@@ -4152,6 +4163,26 @@ function MonoPlans({ tiers, txs, reload }: { tiers: PricingTier[]; txs: TangaTx[
   const [draft, setDraft]         = useState<PlanDraft>(BLANK_DRAFT);
   const [errors, setErrors]       = useState<string[]>([]);
   const [saving, setSaving]       = useState(false);
+  const [planList, setPlanList]   = useState<PricingTier[]>([]);
+  const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
+
+  useEffect(() => {
+    setPlanList([...tiers].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)));
+  }, [tiers]);
+
+  async function handleMove(fromIdx: number, toIdx: number) {
+    if (toIdx < 0 || toIdx >= planList.length || fromIdx === toIdx) return;
+    const next = [...planList];
+    const [moved] = next.splice(fromIdx, 1);
+    next.splice(toIdx, 0, moved);
+    setPlanList(next);
+    try {
+      await reorderPricingTiers(next.map((t, idx) => ({ id: t.id, sortOrder: idx })));
+      reload();
+    } catch (err) {
+      console.error("Failed to reorder tiers:", err);
+    }
+  }
 
   const planStats = useMemo(() => {
     const map: Record<string, { count: number; revenue: number }> = {};
@@ -4210,10 +4241,13 @@ function MonoPlans({ tiers, txs, reload }: { tiers: PricingTier[]; txs: TangaTx[
       ...(editingId ? {} : { key: `${slugify(draft.name)}-${Date.now().toString(36)}` }),
       name: draft.name.trim(),
       nameRu: draft.nameLocalized.ru?.trim() || undefined,
+      nameEn: draft.nameLocalized.en?.trim() || undefined,
       desc: draft.desc,
       descRu: draft.descLocalized.ru?.trim() || undefined,
+      descEn: draft.descLocalized.en?.trim() || undefined,
       badge: draft.badge.trim() || undefined,
       badgeRu: draft.badgeLocalized.ru?.trim() || undefined,
+      badgeEn: draft.badgeLocalized.en?.trim() || undefined,
       credits: Number(draft.credits),
       bonusTokens: draft.bonusTokens !== "" ? Number(draft.bonusTokens) : 0,
       priceSom: Number(draft.price),
@@ -4304,7 +4338,7 @@ function MonoPlans({ tiers, txs, reload }: { tiers: PricingTier[]; txs: TangaTx[
           </button>
         </div>
 
-        {tiers.length === 0 ? (
+        {planList.length === 0 ? (
           <div className="bg-white rounded-2xl border border-dashed border-red-200 p-8 text-center">
             <CreditCard className="w-8 h-8 text-red-200 mx-auto mb-2" />
             <p className="text-sm text-gray-400">Hali rejalar yo'q</p>
@@ -4312,26 +4346,73 @@ function MonoPlans({ tiers, txs, reload }: { tiers: PricingTier[]; txs: TangaTx[
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {tiers.map((t) => {
+            {planList.map((t, idx) => {
               const { label: statusLabel, cls: statusCls } = planStatusMeta(t);
               const stats = planStats[t.name] ?? { count: 0, revenue: 0 };
               const campaignUsed = t.salePurchaseCount ?? 0;
               const campaignTotal = t.saleLimit;
               return (
-                <div key={t.id} className={`bg-white rounded-2xl border p-4 shadow-sm transition-all ${t.active && (t.status ?? "active") === "active" ? "border-amber-100" : "border-gray-100 opacity-60"}`}>
+                <div
+                  key={t.id}
+                  draggable
+                  onDragStart={(e) => {
+                    setDraggedIdx(idx);
+                    e.dataTransfer.setData("text/plain", String(idx));
+                  }}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    if (draggedIdx !== null) {
+                      handleMove(draggedIdx, idx);
+                      setDraggedIdx(null);
+                    }
+                  }}
+                  className={`bg-white rounded-2xl border p-4 shadow-sm transition-all relative ${
+                    draggedIdx === idx
+                      ? "opacity-40 border-dashed border-amber-400"
+                      : t.active && (t.status ?? "active") === "active"
+                      ? "border-amber-100"
+                      : "border-gray-100 opacity-60"
+                  }`}
+                >
                   {/* Card header */}
                   <div className="flex items-start justify-between gap-2 mb-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
-                        <span className="font-extrabold text-gray-900 text-sm">{t.name}</span>
-                        {t.badge && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700">{t.badge}</span>}
-                        {t.featured && <span className="text-[9px]">⭐</span>}
-                        {t.hotOffer && <span className="text-[9px]">🔥</span>}
-                        {t.bonusPlan && <span className="text-[9px]">🎁</span>}
+                    <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                      <div
+                        className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 p-1 -ml-1 rounded flex items-center shrink-0"
+                        title="Surish orqali tartibni o'zgartirish (Drag to reorder)"
+                      >
+                        <GripVertical className="w-4 h-4" />
                       </div>
-                      <span className={`inline-block text-[9px] font-bold px-1.5 py-0.5 rounded-full ${statusCls}`}>{statusLabel}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">#{idx + 1}</span>
+                          <span className="font-extrabold text-gray-900 text-sm">{t.name}</span>
+                          {t.badge && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700">{t.badge}</span>}
+                          {t.featured && <span className="text-[9px]">⭐</span>}
+                          {t.hotOffer && <span className="text-[9px]">🔥</span>}
+                          {t.bonusPlan && <span className="text-[9px]">🎁</span>}
+                        </div>
+                        <span className={`inline-block text-[9px] font-bold px-1.5 py-0.5 rounded-full ${statusCls}`}>{statusLabel}</span>
+                      </div>
                     </div>
-                    <div className="flex gap-1 flex-shrink-0">
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <button
+                        onClick={() => handleMove(idx, idx - 1)}
+                        disabled={idx === 0}
+                        title="Oldinga surish"
+                        className="p-1 text-gray-400 hover:text-gray-700 disabled:opacity-20 disabled:hover:text-gray-400 transition-colors"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleMove(idx, idx + 1)}
+                        disabled={idx === planList.length - 1}
+                        title="Orqaga surish"
+                        className="p-1 text-gray-400 hover:text-gray-700 disabled:opacity-20 disabled:hover:text-gray-400 transition-colors"
+                      >
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
                       <button onClick={() => toggleTier(t)} className={`text-xs font-semibold px-2 py-1 rounded-lg transition-colors ${t.active ? "text-orange-500 hover:bg-orange-50" : "text-emerald-600 hover:bg-emerald-50"}`}>
                         {t.active ? "O'ch" : "Yoq"}
                       </button>
@@ -4465,6 +4546,39 @@ function MonoPlans({ tiers, txs, reload }: { tiers: PricingTier[]; txs: TangaTx[
                           value={draft.badgeLocalized.ru ?? ""}
                           onChange={(e) => setDraft({ ...draft, badgeLocalized: { ...draft.badgeLocalized, ru: e.target.value } })}
                           placeholder="Nishon (ru) — ixtiyoriy"
+                          className={`${inputCls} w-full text-xs`}
+                        />
+                      </div>
+                    </Field>
+                  </div>
+
+                  {/* ── English translation ─────────────────────── */}
+                  <div className="col-span-2">
+                    <Field label="🇬🇧 Ingliz tilidagi tarjima (tavsiya)">
+                      <div className={`rounded-xl border p-3 space-y-2 mt-1 ${(draft.nameLocalized.en ?? "").trim() ? "border-blue-200 bg-blue-50/40" : "border-gray-200 bg-gray-50/60"}`}>
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <span className="text-sm">🇬🇧</span>
+                          <span className="text-[10px] font-bold text-gray-500 uppercase">English</span>
+                          <span className={`ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full ${(draft.nameLocalized.en ?? "").trim() ? "bg-blue-100 text-blue-700" : "bg-gray-200 text-gray-400"}`}>
+                            {(draft.nameLocalized.en ?? "").trim() ? "✅ To'ldirilgan" : "○ Ixtiyoriy"}
+                          </span>
+                        </div>
+                        <input
+                          value={draft.nameLocalized.en ?? ""}
+                          onChange={(e) => setDraft({ ...draft, nameLocalized: { ...draft.nameLocalized, en: e.target.value } })}
+                          placeholder="Reja nomi (en)"
+                          className={`${inputCls} w-full text-xs`}
+                        />
+                        <input
+                          value={draft.descLocalized.en ?? ""}
+                          onChange={(e) => setDraft({ ...draft, descLocalized: { ...draft.descLocalized, en: e.target.value } })}
+                          placeholder="Tavsif (en)"
+                          className={`${inputCls} w-full text-xs`}
+                        />
+                        <input
+                          value={draft.badgeLocalized.en ?? ""}
+                          onChange={(e) => setDraft({ ...draft, badgeLocalized: { ...draft.badgeLocalized, en: e.target.value } })}
+                          placeholder="Nishon (en) — ixtiyoriy"
                           className={`${inputCls} w-full text-xs`}
                         />
                       </div>
@@ -5409,9 +5523,9 @@ function AnnouncementsSection({ refreshKey }: { refreshKey: number }) {
   async function handleSave() {
     if (!validate()) return;
     setSaving(true);
-    const hasTitleLoc = !!(form.titleLocalized?.ru?.trim());
-    const hasContentLoc = !!(form.contentLocalized?.ru?.trim());
-    const hasCtaLoc = !!(form.ctaTextLocalized?.ru?.trim());
+    const hasTitleLoc = !!(form.titleLocalized?.ru?.trim() || form.titleLocalized?.en?.trim());
+    const hasContentLoc = !!(form.contentLocalized?.ru?.trim() || form.contentLocalized?.en?.trim());
+    const hasCtaLoc = !!(form.ctaTextLocalized?.ru?.trim() || form.ctaTextLocalized?.en?.trim());
     const payload = {
       ...form,
       id: editing?.id,
@@ -5664,6 +5778,24 @@ function AnnouncementsSection({ refreshKey }: { refreshKey: number }) {
                         </div>
                       </div>
 
+                      {/* ── English title translation ────────────── */}
+                      <div>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">🇬🇧 Sarlavha (English, tavsiya)</p>
+                        <div className={`rounded-xl border p-2.5 ${(f.titleLocalized?.en ?? "").trim() ? "border-emerald-200 bg-emerald-50/40" : "border-gray-200"}`}>
+                          <div className="flex items-center gap-1 mb-1.5">
+                            <span className="text-xs">🇬🇧</span>
+                            <span className="text-[9px] font-bold text-gray-500 uppercase flex-1">English</span>
+                            {(f.titleLocalized?.en ?? "").trim() && <span className="text-[9px] text-emerald-600 font-bold">✅</span>}
+                          </div>
+                          <input
+                            value={f.titleLocalized?.en ?? ""}
+                            onChange={(e) => set("titleLocalized", { ...(f.titleLocalized ?? {}), en: e.target.value.slice(0, 120) })}
+                            placeholder="Title (en)"
+                            className={`${inputCls} w-full text-xs`}
+                          />
+                        </div>
+                      </div>
+
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <label className="text-xs font-semibold text-gray-600 mb-1 block">Tur</label>
@@ -5773,6 +5905,25 @@ function AnnouncementsSection({ refreshKey }: { refreshKey: number }) {
                         />
                       </div>
                     </div>
+
+                    {/* ── English content translation ──────────── */}
+                    <div className="mt-3">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">🇬🇧 Kontent (English, tavsiya)</p>
+                      <div className={`rounded-xl border p-2.5 ${(f.contentLocalized?.en ?? "").trim() ? "border-emerald-200 bg-emerald-50/40" : "border-gray-200"}`}>
+                        <div className="flex items-center gap-1 mb-1.5">
+                          <span className="text-xs">🇬🇧</span>
+                          <span className="text-[9px] font-bold text-gray-500 uppercase flex-1">English</span>
+                          {(f.contentLocalized?.en ?? "").trim() && <span className="text-[9px] text-emerald-600 font-bold">✅</span>}
+                        </div>
+                        <textarea
+                          value={f.contentLocalized?.en ?? ""}
+                          onChange={(e) => set("contentLocalized", { ...(f.contentLocalized ?? {}), en: e.target.value })}
+                          rows={4}
+                          placeholder="Content (en) — Markdown supported"
+                          className={`${inputCls} w-full resize-y min-h-[80px] font-mono text-xs`}
+                        />
+                      </div>
+                    </div>
                   </section>
 
                   <div className="border-t border-gray-200" />
@@ -5800,6 +5951,36 @@ function AnnouncementsSection({ refreshKey }: { refreshKey: number }) {
                           placeholder="/plans yoki https://..."
                         />
                         {errors.ctaLink && <p className="text-[10px] text-red-500 mt-0.5">⚠ {errors.ctaLink}</p>}
+                      </div>
+                    </div>
+
+                    {/* CTA translations */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className={`rounded-xl border p-2.5 ${(f.ctaTextLocalized?.ru ?? "").trim() ? "border-emerald-200 bg-emerald-50/40" : "border-gray-200"}`}>
+                        <div className="flex items-center gap-1 mb-1.5">
+                          <span className="text-xs">🇷🇺</span>
+                          <span className="text-[9px] font-bold text-gray-500 uppercase flex-1">Русский CTA</span>
+                          {(f.ctaTextLocalized?.ru ?? "").trim() && <span className="text-[9px] text-emerald-600 font-bold">✅</span>}
+                        </div>
+                        <input
+                          value={f.ctaTextLocalized?.ru ?? ""}
+                          onChange={(e) => set("ctaTextLocalized", { ...(f.ctaTextLocalized ?? {}), ru: e.target.value })}
+                          placeholder="Купить Tanga"
+                          className={`${inputCls} w-full text-xs`}
+                        />
+                      </div>
+                      <div className={`rounded-xl border p-2.5 ${(f.ctaTextLocalized?.en ?? "").trim() ? "border-emerald-200 bg-emerald-50/40" : "border-gray-200"}`}>
+                        <div className="flex items-center gap-1 mb-1.5">
+                          <span className="text-xs">🇬🇧</span>
+                          <span className="text-[9px] font-bold text-gray-500 uppercase flex-1">English CTA</span>
+                          {(f.ctaTextLocalized?.en ?? "").trim() && <span className="text-[9px] text-emerald-600 font-bold">✅</span>}
+                        </div>
+                        <input
+                          value={f.ctaTextLocalized?.en ?? ""}
+                          onChange={(e) => set("ctaTextLocalized", { ...(f.ctaTextLocalized ?? {}), en: e.target.value })}
+                          placeholder="Buy Tanga"
+                          className={`${inputCls} w-full text-xs`}
+                        />
                       </div>
                     </div>
                   </section>

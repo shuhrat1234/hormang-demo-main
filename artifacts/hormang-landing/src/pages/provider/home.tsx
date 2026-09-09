@@ -52,6 +52,7 @@ import {
   getPublishedAnnouncements, markAnnouncementSeen, getSeenAnnouncementIds,
   type Announcement,
 } from "@/lib/announcements-store";
+import { NotificationsBell } from "@/components/notifications-bell";
 
 /* ─── Helpers ─────────────────────────────────────────────────────── */
 function formatDate(iso: string, months?: string[]): string {
@@ -1280,6 +1281,7 @@ export default function ProviderHomePage() {
             </span>
           )}
           <TangaChip userId={user?.id ?? ""} onClick={() => setLocation("/plans")} />
+          <NotificationsBell audience="providers" accentColor={VIOLET} />
           <button
             onClick={() => setLocation("/dashboard")}
             className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm overflow-hidden flex-shrink-0"

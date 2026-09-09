@@ -11,6 +11,7 @@ import {
   type FeedbackType, type FeedbackStatus, type Feedback,
 } from "@/lib/feedback-store";
 import { getRequestsByCustomer } from "@/lib/requests-store";
+import { compressImage } from "@/lib/image-utils";
 import { useToast } from "@/hooks/use-toast";
 import {
   ChevronLeft, Check, Upload, X, CheckCircle2, Loader2,
@@ -138,16 +139,19 @@ function FeedbackFormDrawer({
   const [title, setTitle]             = useState("");
   const [desc, setDesc]               = useState("");
   const [files, setFiles]             = useState<string[]>([]);
+  const [compressingFiles, setCompressingFiles] = useState(false);
   const [submitting, setSubmitting]   = useState(false);
 
   function resetForm() {
     setStep(0); setType(null); setTargetType(""); setProblemArea("");
     setSuggestionCat(""); setRelatedReqId(""); setTitle(""); setDesc(""); setFiles([]);
+    setCompressingFiles(false);
   }
 
   function handleClose() { resetForm(); onClose(); }
 
   function canNext() {
+    if (compressingFiles) return false;
     if (step === 0) return !!type;
     if (step === 1) {
       if (type === "complaint") return !!targetType;
@@ -158,16 +162,36 @@ function FeedbackFormDrawer({
     return true;
   }
 
-  function addFiles(raw: FileList | null) {
+  async function addFiles(raw: FileList | null) {
     if (!raw) return;
-    Array.from(raw).slice(0, 5 - files.length).forEach(file => {
-      const reader = new FileReader();
-      reader.onload = e => {
-        const r = e.target?.result as string;
-        setFiles(prev => prev.length < 5 ? [...prev, r] : prev);
-      };
-      reader.readAsDataURL(file);
-    });
+    const incoming = Array.from(raw).slice(0, 5 - files.length);
+    if (incoming.length === 0) return;
+    setCompressingFiles(true);
+    try {
+      const processed = await Promise.all(
+        incoming.map(async (file) => {
+          if (file.type.startsWith("image/")) {
+            return await compressImage(file, 1024, 0.72);
+          }
+          return new Promise<string>((resolve, reject) => {
+            if (file.size > 2 * 1024 * 1024) {
+              reject(new Error("File size exceeds 2MB"));
+              return;
+            }
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target?.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+        })
+      );
+      setFiles((prev) => [...prev, ...processed].slice(0, 5));
+    } catch (err) {
+      console.warn("[Hormang] File processing warning:", err);
+      toast({ title: tt.errorToast, description: "Faylni yuklashda xatolik yuz berdi", variant: "destructive" });
+    } finally {
+      setCompressingFiles(false);
+    }
   }
 
   async function handleSubmit() {

@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
-import { db, usersTable, userModerationTable, walletsTable, type AdminNote } from "@workspace/db";
+import { db, usersTable, userModerationTable, walletsTable, providerProfilesTable, offersTable, type AdminNote } from "@workspace/db";
 import { requireAdminKey } from "../middlewares/admin.js";
 
 const router: IRouter = Router();
@@ -16,10 +16,16 @@ async function getOrCreateModeration(userId: string) {
 // ─── GET / — every user, joined with moderation flags + wallet balance ────
 router.get("/", async (_req, res) => {
   try {
-    const [users, moderations, wallets] = await Promise.all([
+    const [users, moderations, wallets, providerProfiles, offerMasters] = await Promise.all([
       db.select().from(usersTable),
       db.select().from(userModerationTable),
       db.select().from(walletsTable),
+      db.select({ userId: providerProfilesTable.userId }).from(providerProfilesTable),
+      db.selectDistinct({ masterId: offersTable.masterId }).from(offersTable),
+    ]);
+    const providerUserIds = new Set([
+      ...providerProfiles.map((p) => p.userId),
+      ...offerMasters.map((o) => o.masterId),
     ]);
     const modByUser = new Map(moderations.map((m) => [m.userId, m]));
     const walletByUser = new Map(wallets.map((w) => [w.userId, w.balance]));
@@ -27,13 +33,18 @@ router.get("/", async (_req, res) => {
     res.json({
       users: users.map((u) => {
         const mod = modByUser.get(u.id);
+        const isProvider = u.role === "provider" || providerUserIds.has(u.id);
+        const role = isProvider ? "provider" : u.role;
+        if (u.role === "buyer" && isProvider) {
+          db.update(usersTable).set({ role: "provider", updatedAt: new Date() }).where(eq(usersTable.id, u.id)).catch(() => {});
+        }
         return {
           id: u.id,
           firstName: u.firstName,
           lastName: u.lastName,
           phone: u.phone,
           email: u.email,
-          role: u.role,
+          role,
           createdAt: u.createdAt.toISOString(),
           lastLoginAt: u.lastLoginAt?.toISOString() ?? null,
           balance: walletByUser.get(u.id) ?? 0,

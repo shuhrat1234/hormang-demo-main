@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, and, ne, desc, sql } from "drizzle-orm";
+import { eq, and, ne, desc, sql, inArray } from "drizzle-orm";
 import { db, requestsTable, offersTable, walletsTable, tangaTransactionsTable, type RequestRow } from "@workspace/db";
 import { requireAuth, type AuthRequest } from "../middlewares/auth.js";
 import { requireAdminKey } from "../middlewares/admin.js";
@@ -89,10 +89,11 @@ router.get("/cooldown", requireAuth, async (req: AuthRequest, res) => {
 
 async function withOfferCounts(rows: RequestRow[]) {
   if (rows.length === 0) return rows.map((r) => ({ ...toJson(r), offerCount: 0 }));
+  const ids = rows.map((r) => r.id);
   const counts = await db
     .select({ requestId: offersTable.requestId, count: sql<number>`count(*)::int` })
     .from(offersTable)
-    .where(sql`${offersTable.requestId} in ${rows.map((r) => r.id)}`)
+    .where(inArray(offersTable.requestId, ids))
     .groupBy(offersTable.requestId);
   const countByRequest = new Map(counts.map((c) => [c.requestId, c.count]));
   return rows.map((r) => ({ ...toJson(r), offerCount: countByRequest.get(r.id) ?? 0 }));
@@ -137,7 +138,8 @@ router.get("/:id", async (req, res) => {
       res.status(404).json({ error: "So'rov topilmadi" });
       return;
     }
-    res.json({ request: toJson(row) });
+    const [withCount] = await withOfferCounts([row]);
+    res.json({ request: withCount });
   } catch (err) {
     console.error("Get request error:", err);
     res.status(500).json({ error: "Xatolik yuz berdi" });

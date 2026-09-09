@@ -1274,6 +1274,31 @@ router.post("/delete-account/cancel", requireAuth, async (req: AuthRequest, res)
   }
 });
 
+// ─── PATCH /role — update caller's role (buyer | provider) ─────────────────
+router.patch("/role", requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const { role } = req.body as { role?: string };
+    if (role !== "buyer" && role !== "provider") {
+      res.status(400).json({ error: "role 'buyer' yoki 'provider' bo'lishi kerak" });
+      return;
+    }
+    const [updated] = await db
+      .update(usersTable)
+      .set({ role, updatedAt: new Date() })
+      .where(eq(usersTable.id, req.user!.id))
+      .returning();
+    if (!updated) {
+      res.status(404).json({ error: "Foydalanuvchi topilmadi" });
+      return;
+    }
+    const safeUser = { ...updated, passwordHash: undefined, twoFactorCodeHash: undefined };
+    res.json({ user: safeUser });
+  } catch (err) {
+    console.error("Update role error:", err);
+    res.status(500).json({ error: "Xatolik yuz berdi" });
+  }
+});
+
 // ─── PUT /provider-profile ─────────────────────────────────────────────────
 router.put("/provider-profile", requireAuth, async (req: AuthRequest, res) => {
   try {

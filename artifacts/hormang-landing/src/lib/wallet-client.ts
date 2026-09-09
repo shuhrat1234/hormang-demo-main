@@ -5,8 +5,10 @@ export interface WalletTier {
   key: string;
   nameUz: string;
   nameRu: string;
+  nameEn?: string | null;
   descUz: string | null;
   descRu: string | null;
+  descEn?: string | null;
   credits: number;
   bonusTokens: number;
   priceSom: number;
@@ -24,6 +26,7 @@ export interface WalletTier {
   bonusPlan: boolean;
   badgeUz: string | null;
   badgeRu: string | null;
+  badgeEn?: string | null;
   color: string | null;
   active: boolean;
   sortOrder: number;

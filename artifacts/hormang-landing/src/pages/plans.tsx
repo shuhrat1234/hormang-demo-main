@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Check, Zap, X, Timer } from "lucide-react";
@@ -99,9 +99,9 @@ function PlanCard({
   const { t, locale } = useI18n();
   const tt = t.plansPage;
   const countdown = useCountdown(tier.validUntil);
-  const tierName = getLocalizedText({ uz: tier.nameUz, ru: tier.nameRu }, locale);
-  const tierDesc = getLocalizedText({ uz: tier.descUz ?? undefined, ru: tier.descRu ?? undefined }, locale);
-  const tierBadge = getLocalizedText({ uz: tier.badgeUz ?? undefined, ru: tier.badgeRu ?? undefined }, locale);
+  const tierName = getLocalizedText({ uz: tier.nameUz, ru: tier.nameRu, en: tier.nameEn ?? undefined }, locale);
+  const tierDesc = getLocalizedText({ uz: tier.descUz ?? undefined, ru: tier.descRu ?? undefined, en: tier.descEn ?? undefined }, locale);
+  const tierBadge = getLocalizedText({ uz: tier.badgeUz ?? undefined, ru: tier.badgeRu ?? undefined, en: tier.badgeEn ?? undefined }, locale);
   const isExpired = tier.validUntil ? new Date(tier.validUntil) <= new Date() : false;
   const totalTokens = tier.credits + tier.bonusTokens;
 
@@ -331,6 +331,10 @@ export default function PlansPage() {
   const [bought, setBought] = useState<string | null>(null);
   const [pickerTier, setPickerTier] = useState<WalletTier | null>(null);
 
+  const sortedTiers = useMemo(() => {
+    return [...tiers].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  }, [tiers]);
+
   useEffect(() => {
     let cancelled = false;
     getWallet()
@@ -425,7 +429,7 @@ export default function PlansPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <AnimatePresence>
-              {tiers.map((tier, i) => (
+              {sortedTiers.map((tier, i) => (
                 <motion.div
                   key={tier.id}
                   initial={{ opacity: 0, y: 10 }}

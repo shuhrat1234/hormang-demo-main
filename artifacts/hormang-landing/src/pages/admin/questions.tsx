@@ -76,6 +76,8 @@ interface EditorState {
   step: string;
   options: EditorOption[];
   autofillExamples: string[];
+  autofillExamplesRu: string[];
+  autofillExamplesEn: string[];
   condEnabled: boolean;
   condQuestionId: string;
   condValue: string;
@@ -108,6 +110,8 @@ function blankEditor(): EditorState {
     step: "",
     options: [blankOption()],
     autofillExamples: [],
+    autofillExamplesRu: [],
+    autofillExamplesEn: [],
     condEnabled: false,
     condQuestionId: "",
     condValue: "",
@@ -144,7 +148,9 @@ function editorFromQuestion(q: Question): EditorState {
           tangaCost: o.tangaCost != null ? String(o.tangaCost) : "0",
         }))
       : [blankOption()],
-    autofillExamples: q.autofillExamples ?? [],
+    autofillExamples: q.autofillExamplesLocalized?.uz ?? q.autofillExamples ?? [],
+    autofillExamplesRu: q.autofillExamplesLocalized?.ru ?? [],
+    autofillExamplesEn: q.autofillExamplesLocalized?.en ?? [],
     condEnabled: !!q.conditional,
     condQuestionId: q.conditional?.questionId ?? "",
     condValue: q.conditional?.value ?? "",
@@ -228,8 +234,17 @@ function editorToQuestion(e: EditorState): Question {
       });
   }
 
-  const filled = (e.autofillExamples ?? []).map((s) => s.trim()).filter(Boolean);
-  if (filled.length > 0) q.autofillExamples = filled;
+  const uzExamples = (e.autofillExamples ?? []).map((s) => s.trim()).filter(Boolean);
+  const ruExamples = (e.autofillExamplesRu ?? []).map((s) => s.trim()).filter(Boolean);
+  const enExamples = (e.autofillExamplesEn ?? []).map((s) => s.trim()).filter(Boolean);
+  if (uzExamples.length > 0) q.autofillExamples = uzExamples;
+  if (uzExamples.length > 0 || ruExamples.length > 0 || enExamples.length > 0) {
+    q.autofillExamplesLocalized = {
+      ...(uzExamples.length > 0 ? { uz: uzExamples } : {}),
+      ...(ruExamples.length > 0 ? { ru: ruExamples } : {}),
+      ...(enExamples.length > 0 ? { en: enExamples } : {}),
+    };
+  }
 
   if (e.condEnabled && e.condQuestionId) {
     q.conditional = { questionId: e.condQuestionId, value: e.condValue };
@@ -355,6 +370,12 @@ function QuestionPreview({ q, lang = "uz" }: { q: EditorState; lang?: "uz" | "ru
   const resolvedLabel = lang === "ru" ? (q.labelRu || q.label) : lang === "en" ? (q.labelEn || q.label) : q.label;
   const resolvedPlaceholder = lang === "ru" ? (q.placeholderRu || q.placeholder) : lang === "en" ? (q.placeholderEn || q.placeholder) : q.placeholder;
   const resolvedHelp = lang === "ru" ? (q.helpTextRu || q.helpText) : lang === "en" ? (q.helpTextEn || q.helpText) : q.helpText;
+  const resolvedExamples =
+    lang === "ru"
+      ? (q.autofillExamplesRu && q.autofillExamplesRu.length > 0 ? q.autofillExamplesRu : q.autofillExamples)
+      : lang === "en"
+      ? (q.autofillExamplesEn && q.autofillExamplesEn.length > 0 ? q.autofillExamplesEn : q.autofillExamples)
+      : q.autofillExamples;
   function optLabel(o: EditorOption) { return lang === "ru" ? (o.labelRu || o.label) : lang === "en" ? (o.labelEn || o.label) : o.label; }
   /** Picks a UI copy string for the preview's static chrome text (not editable content). */
   function tri(uz: string, ru: string, en: string) { return lang === "ru" ? ru : lang === "en" ? en : uz; }
@@ -401,7 +422,7 @@ function QuestionPreview({ q, lang = "uz" }: { q: EditorState; lang?: "uz" | "ru
                 setShowOther(q.options.some(x => x.type === "other" && next.includes(x._key)));
               }}
                 className={`px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all flex items-center gap-1 ${on ? "border-blue-500 bg-blue-600 text-white" : "border-gray-200 bg-white text-gray-600 hover:border-blue-300"}`}>
-                {on && <Check className="w-3 h-3" />}{optLabel(o)}
+                {on && <Check className="w-3 h-3" />} {optLabel(o)}
               </button>
             );
           })}
@@ -432,9 +453,9 @@ function QuestionPreview({ q, lang = "uz" }: { q: EditorState; lang?: "uz" | "ru
       {q.type === "text" && (
         <div className="space-y-2">
           <input placeholder={resolvedPlaceholder || tri("Matn kiriting…", "Введите текст…", "Enter text…")} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-xs focus:outline-none focus:border-blue-300" />
-          {q.autofillExamples && q.autofillExamples.filter(Boolean).length > 0 && (
+          {resolvedExamples && resolvedExamples.filter(Boolean).length > 0 && (
             <div className="flex flex-wrap gap-1.5">
-              {q.autofillExamples.filter(Boolean).map((ex, i) => (
+              {resolvedExamples.filter(Boolean).map((ex, i) => (
                 <span key={i} className="px-2.5 py-1 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 text-[11px] font-medium cursor-pointer hover:bg-blue-100 transition-colors">{ex}</span>
               ))}
             </div>
@@ -444,9 +465,9 @@ function QuestionPreview({ q, lang = "uz" }: { q: EditorState; lang?: "uz" | "ru
       {q.type === "textarea" && (
         <div className="space-y-2">
           <textarea rows={2} placeholder={resolvedPlaceholder || tri("Matn kiriting…", "Введите текст…", "Enter text…")} className="w-full px-3 py-2 rounded-lg border border-gray-200 text-xs focus:outline-none focus:border-blue-300 resize-none" />
-          {q.autofillExamples && q.autofillExamples.filter(Boolean).length > 0 && (
+          {resolvedExamples && resolvedExamples.filter(Boolean).length > 0 && (
             <div className="flex flex-wrap gap-1.5">
-              {q.autofillExamples.filter(Boolean).map((ex, i) => (
+              {resolvedExamples.filter(Boolean).map((ex, i) => (
                 <span key={i} className="px-2.5 py-1 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 text-[11px] font-medium cursor-pointer hover:bg-blue-100 transition-colors">{ex}</span>
               ))}
             </div>
@@ -1047,39 +1068,59 @@ function QuestionEditorModal({
             )}
 
             {/* Autofill examples */}
-            {(s.type === "text" || s.type === "textarea") && editorLang === "uz" && (
-              <div>
-                <label className="block text-[11px] font-black uppercase tracking-wide text-gray-400 mb-1.5">
-                  Misol javoblar <span className="normal-case font-medium text-gray-400">(autofill chips)</span>
-                </label>
-                <div className="space-y-2">
-                  {s.autofillExamples.map((ex, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
-                      <input
-                        value={ex}
-                        onChange={(e) => {
-                          const next = [...s.autofillExamples];
-                          next[idx] = e.target.value;
-                          set("autofillExamples", next);
-                        }}
-                        placeholder={`Misol ${idx + 1}…`}
-                        className="flex-1 px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 transition-all"
-                      />
-                      <button onClick={() => {
-                        const next = s.autofillExamples.filter((_, i) => i !== idx);
-                        set("autofillExamples", next);
-                      }} className="p-1.5 text-gray-300 hover:text-red-400 transition-colors flex-shrink-0">
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))}
-                  <button onClick={() => set("autofillExamples", [...s.autofillExamples, ""])}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-dashed border-blue-300 text-blue-600 text-xs font-semibold hover:bg-blue-50 transition-colors">
-                    <Plus className="w-3.5 h-3.5" /> Misol qo'shish
-                  </button>
+            {(s.type === "text" || s.type === "textarea") && (() => {
+              const activeExamplesKey = editorLang === "uz" ? "autofillExamples" : editorLang === "ru" ? "autofillExamplesRu" : "autofillExamplesEn";
+              const currentList = (s[activeExamplesKey] ?? []) as string[];
+              const labelText =
+                editorLang === "uz"
+                  ? "Misol javoblar (autofill chips)"
+                  : editorLang === "ru"
+                  ? "Примеры ответов (autofill chips)"
+                  : "Example answers (autofill chips)";
+              const plText =
+                editorLang === "uz" ? "Misol" : editorLang === "ru" ? "Пример" : "Example";
+              const addText =
+                editorLang === "uz" ? "Misol qo'shish" : editorLang === "ru" ? "Добавить пример" : "Add example";
+
+              return (
+                <div>
+                  <label className="block text-[11px] font-black uppercase tracking-wide text-gray-400 mb-1.5">
+                    {labelText}
+                  </label>
+                  <div className="space-y-2">
+                    {currentList.map((ex, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <input
+                          value={ex}
+                          onChange={(e) => {
+                            const next = [...currentList];
+                            next[idx] = e.target.value;
+                            set(activeExamplesKey, next);
+                          }}
+                          placeholder={`${plText} ${idx + 1}…`}
+                          className="flex-1 px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 transition-all"
+                        />
+                        <button
+                          onClick={() => {
+                            const next = currentList.filter((_, i) => i !== idx);
+                            set(activeExamplesKey, next);
+                          }}
+                          className="p-1.5 text-gray-300 hover:text-red-400 transition-colors flex-shrink-0"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      onClick={() => set(activeExamplesKey, [...currentList, ""])}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-dashed border-blue-300 text-blue-600 text-xs font-semibold hover:bg-blue-50 transition-colors"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> {addText}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* Numeric range */}
             {needsNumeric && (

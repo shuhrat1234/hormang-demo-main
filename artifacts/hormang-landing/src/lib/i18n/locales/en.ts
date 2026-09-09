@@ -428,7 +428,7 @@ export const en: Dict = {
     },
   },
   customerHome: {
-    greetingTpl: "Assalomu Alaykum, {{name}} 👋",
+    greetingTpl: "Hello, {{name}} 👋",
     whatService: "What service do you need?",
     createNewRequestSubtitle: "Create a new request to find a service",
     createNewRequest: "Create a new request",
@@ -497,7 +497,7 @@ export const en: Dict = {
     flexible: "Flexible",
   },
   providerHome: {
-    greetingTpl:      "Assalomu alaykum, {{name}}! 👋",
+    greetingTpl:      "Hello, {{name}}! 👋",
     greetingSubtitle: "Today's requests and your services",
     roleBadge:        "Provider",
     newCountTpl:      "{{n}} new",

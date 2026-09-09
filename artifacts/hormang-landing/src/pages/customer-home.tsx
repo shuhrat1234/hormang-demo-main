@@ -32,6 +32,7 @@ import {
   getPublishedAnnouncements, markAnnouncementSeen, getSeenAnnouncementIds,
   type Announcement,
 } from "@/lib/announcements-store";
+import { NotificationsBell } from "@/components/notifications-bell";
 
 const BLUE      = "hsl(221,78%,50%)";
 const BLUE_GRAD = "linear-gradient(135deg, hsl(221,78%,48%) 0%, hsl(199,89%,56%) 100%)";
@@ -346,6 +347,7 @@ export default function CustomerHomePage() {
             </div>
 
             <div className="flex items-center gap-2">
+              <NotificationsBell audience="customers" accentColor={BLUE} />
               <button
                 onClick={() => setLocation("/dashboard")}
                 className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-blue-100 active:scale-95 transition-transform"

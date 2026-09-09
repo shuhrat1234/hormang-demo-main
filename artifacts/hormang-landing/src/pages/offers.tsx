@@ -206,7 +206,16 @@ function OfferCard({ offer, req, index, anyAccepted, onChanged }: { offer: Offer
 
       <AnimatePresence>
         {showDetail && (
-          <OfferDetailModal offer={offer} onClose={() => setShowDetail(false)} />
+          <OfferDetailModal
+            offer={offer}
+            onClose={() => {
+              setShowDetail(false);
+              onChanged();
+            }}
+            onStatusChange={() => {
+              onChanged();
+            }}
+          />
         )}
       </AnimatePresence>
     </>

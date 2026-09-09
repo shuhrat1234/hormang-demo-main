@@ -10,10 +10,13 @@ interface TierBody {
   key?: string;
   name?: string; // uz — primary
   nameRu?: string;
+  nameEn?: string;
   desc?: string;
   descRu?: string;
+  descEn?: string;
   badge?: string;
   badgeRu?: string;
+  badgeEn?: string;
   credits?: number;
   bonusTokens?: number;
   priceSom?: number;
@@ -42,17 +45,23 @@ function toDate(v: string | null | undefined): Date | null | undefined {
 function toValues(body: TierBody) {
   const name = body.name?.trim();
   const nameRu = body.nameRu?.trim();
+  const nameEn = body.nameEn?.trim();
   const desc = body.desc?.trim();
   const descRu = body.descRu?.trim();
+  const descEn = body.descEn?.trim();
   const badge = body.badge?.trim();
   const badgeRu = body.badgeRu?.trim();
+  const badgeEn = body.badgeEn?.trim();
   return {
     ...(body.key ? { key: body.key.trim() } : {}),
     ...(name ? { nameUz: name, nameRu: nameRu || name } : {}),
+    nameEn: nameEn || null,
     descUz: desc || null,
     descRu: descRu || desc || null,
+    descEn: descEn || null,
     badgeUz: badge || null,
     badgeRu: badgeRu || badge || null,
+    badgeEn: badgeEn || null,
     ...(body.credits != null ? { credits: body.credits } : {}),
     ...(body.bonusTokens != null ? { bonusTokens: body.bonusTokens } : {}),
     ...(body.priceSom != null ? { priceSom: body.priceSom } : {}),
@@ -96,6 +105,28 @@ router.post("/", async (req, res) => {
     res.status(201).json({ tier: row });
   } catch (err) {
     console.error("Create pricing tier error:", err);
+    res.status(500).json({ error: "Xatolik yuz berdi" });
+  }
+});
+
+router.put("/reorder", async (req, res) => {
+  try {
+    const { items } = req.body as { items?: Array<{ id: string; sortOrder: number }> };
+    if (!Array.isArray(items)) {
+      res.status(400).json({ error: "items massiv bo'lishi kerak" });
+      return;
+    }
+    await Promise.all(
+      items.map((item) =>
+        db
+          .update(pricingTiersTable)
+          .set({ sortOrder: item.sortOrder, updatedAt: new Date() })
+          .where(eq(pricingTiersTable.id, item.id))
+      )
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("Reorder pricing tiers error:", err);
     res.status(500).json({ error: "Xatolik yuz berdi" });
   }
 });

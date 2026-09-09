@@ -61,6 +61,17 @@ const URGENCY_COLORS: Record<string, string> = {
   flexible: "text-gray-600 bg-gray-50 border-gray-200",
 };
 
+function getAutofillExamples(q: Question, loc: "uz" | "ru" | "en"): string[] {
+  if (q.autofillExamplesLocalized) {
+    const localized = q.autofillExamplesLocalized[loc];
+    if (localized && localized.length > 0) return localized.filter(Boolean);
+    if (q.autofillExamplesLocalized.uz && q.autofillExamplesLocalized.uz.length > 0) {
+      return q.autofillExamplesLocalized.uz.filter(Boolean);
+    }
+  }
+  return (q.autofillExamples ?? []).filter(Boolean);
+}
+
 /* ─── Answer formatting helpers ─────────────────────────────────── */
 interface FormatLabels { yes: string; no: string; fileUploaded: string; soum: string; budgetTpl: string; locale?: Locale }
 function formatAnswer(question: Question, value: unknown, labels?: FormatLabels): string {
@@ -248,7 +259,7 @@ function ConditionalInlineBlock({
               );
             })()}
             {bq.type === "text" && (() => {
-              const bExamples = (bq.autofillExamples ?? []).filter(Boolean);
+              const bExamples = getAutofillExamples(bq, locale);
               return (
                 <div className="space-y-2">
                   <input type="text" value={(bVal as string) ?? ""} onChange={(e) => onChange(bq.id, e.target.value)} placeholder={getLocalizedText(bq.placeholderLocalized ?? bq.placeholder, locale) || t.misc.textPlaceholder}
@@ -265,7 +276,7 @@ function ConditionalInlineBlock({
               );
             })()}
             {bq.type === "textarea" && (() => {
-              const bExamples = (bq.autofillExamples ?? []).filter(Boolean);
+              const bExamples = getAutofillExamples(bq, locale);
               return (
                 <div className="space-y-2">
                   <textarea rows={3} value={(bVal as string) ?? ""} onChange={(e) => onChange(bq.id, e.target.value)} placeholder={getLocalizedText(bq.placeholderLocalized ?? bq.placeholder, locale) || t.misc.textPlaceholder}
@@ -681,7 +692,7 @@ function QuestionInput({
   }
 
   if (question.type === "textarea") {
-    const examples = (question.autofillExamples ?? []).filter(Boolean);
+    const examples = getAutofillExamples(question, locale);
     return (
       <div className="space-y-2">
         <textarea
@@ -710,7 +721,7 @@ function QuestionInput({
   }
 
   if (question.type === "text") {
-    const examples = (question.autofillExamples ?? []).filter(Boolean);
+    const examples = getAutofillExamples(question, locale);
     return (
       <div className="space-y-2">
         <input

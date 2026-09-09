@@ -33,7 +33,7 @@ function signedAmount(tx: TangaTransaction): number {
   // Type-based heuristic for older records.
   if (tx.type === "spend") return -Math.abs(tx.amount);
   if (tx.type === "purchase" || tx.type === "referral" || tx.type === "refund") return Math.abs(tx.amount);
-  if (tx.type === "admin_adjustment") {
+  if (tx.type === "admin_adjustment" || /admin/i.test(tx.type ?? "") || /admin_adj/i.test(tx.description ?? "")) {
     const d = tx.description ?? "";
     if (/ayirdi|deduct|−|-/i.test(d)) return -Math.abs(tx.amount);
     return Math.abs(tx.amount);
@@ -84,7 +84,7 @@ function TxRow({
             {tx.type === "profile_completion_reward" ? tt.txTypeProfileBonus
               : tx.type === "referral"          ? tt.txTypeReferral
               : tx.type === "refund"            ? tt.txTypeRefund
-              : tx.type === "admin_adjustment"  ? tt.txTypeAdminAdjustment
+              : (tx.type === "admin_adjustment" || /admin/i.test(tx.type ?? "") || /admin_adj/i.test(tx.description ?? "")) ? tt.txTypeAdminAdjustment
               : tx.type === "purchase"          ? `${tt.txTypePurchase}${tx.categoryName ? ` · ${tx.categoryName}` : ""}`
               : getCategoryDisplayName(categoryId, locale, tx.categoryName)}
           </p>

@@ -9,7 +9,9 @@ import { adminFetch } from "./admin-client";
 /* ─── Pricing tiers ──────────────────────────────────────────────── */
 export interface BackendPricingTier {
   id: string; key: string; nameUz: string; nameRu: string;
+  nameEn?: string | null;
   descUz: string | null; descRu: string | null;
+  descEn?: string | null;
   credits: number; bonusTokens: number; priceSom: number;
   salePrice: number | null; saleLimit: number | null; salePurchaseCount: number;
   perUserLimit: number | null;
@@ -17,13 +19,15 @@ export interface BackendPricingTier {
   status: string; visibilityTarget: string | null;
   featured: boolean; hotOffer: boolean; bonusPlan: boolean;
   badgeUz: string | null; badgeRu: string | null;
+  badgeEn?: string | null;
   color: string | null; active: boolean; sortOrder: number;
   createdAt: string; updatedAt: string;
 }
 
 export interface PricingTierInput {
-  key?: string; name: string; nameRu?: string;
-  desc?: string; descRu?: string; badge?: string; badgeRu?: string;
+  key?: string; name: string; nameRu?: string; nameEn?: string;
+  desc?: string; descRu?: string; descEn?: string;
+  badge?: string; badgeRu?: string; badgeEn?: string;
   credits: number; bonusTokens?: number; priceSom: number;
   salePrice?: number | null; saleLimit?: number | null; perUserLimit?: number | null;
   startsAt?: string | null; validUntil?: string | null;
@@ -46,6 +50,9 @@ export function setPricingTierActive(id: string, active: boolean) {
 }
 export function deletePricingTier(id: string) {
   return adminFetch<{ ok: boolean }>(`/admin/pricing-tiers/${id}`, { method: "DELETE" });
+}
+export function reorderPricingTiers(items: { id: string; sortOrder: number }[]) {
+  return adminFetch<{ ok: boolean }>("/admin/pricing-tiers/reorder", { method: "PUT", body: { items } });
 }
 
 /* ─── Wallets ────────────────────────────────────────────────────── */

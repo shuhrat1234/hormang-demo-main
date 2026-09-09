@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { getMe, logoutUser, refreshToken, type SafeUser, type ProviderProfile } from "@/lib/auth-client";
+import { apiFetch } from "@/lib/api-client";
 import { saveCustomerToRegistry, savePhoneToRegistry } from "@/lib/requests-store";
 import { getLocalProfile, hasProviderAccess, markProviderAccess } from "@/lib/local-profile";
 
@@ -265,6 +266,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (role === "provider") markProviderAccess(user.id);
       localStorage.setItem(activeRoleKey(user.id), role);
       console.log(`[Hormang] 🔄 Rol almashtirildi → ${role === "provider" ? "Ijrochi" : "Mijoz"} (user=${user.id.slice(0, 8)})`);
+      apiFetch("/auth/role", { method: "PATCH", body: { role } }).catch((err) => {
+        console.warn("[Hormang] Failed to sync role to backend:", err);
+      });
     }
   }, [user]);
 
