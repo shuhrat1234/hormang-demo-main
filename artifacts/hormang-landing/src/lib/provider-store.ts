@@ -509,7 +509,7 @@ export interface ProviderOfferExtra {
  */
 export async function saveOffer(
   data: { requestId: string; price: number; priceLabel: string; message: string; termsAccepted: boolean; fileUrls: string[] },
-  providerMeta?: { name: string; initials: string; color: string; id: string },
+  providerMeta?: { name: string; initials: string; color: string; id: string; photoUrl?: string },
   tangaSpent?: number,
 ): Promise<ProviderOffer> {
   return submitOfferStore({
@@ -522,6 +522,7 @@ export async function saveOffer(
     masterName: providerMeta?.name,
     masterInitials: providerMeta?.initials,
     masterColor: providerMeta?.color,
+    masterPhotoUrl: providerMeta?.photoUrl,
   });
 }
 

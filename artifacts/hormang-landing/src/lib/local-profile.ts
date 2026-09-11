@@ -126,6 +126,19 @@ function backendToLocal(pp: ProviderProfile): LocalProfile {
   };
 }
 
+function avatarKey(userId: string): string {
+  return `user_${userId}_avatar`;
+}
+
+export function getStoredAvatar(userId: string): string | undefined {
+  if (!userId) return undefined;
+  try {
+    return localStorage.getItem(avatarKey(userId)) || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function ensureBackendProfileLoaded(userId: string): void {
   if (!userId || backendProfileCache.has(userId) || backendProfileInFlight.has(userId)) return;
   backendProfileInFlight.add(userId);
@@ -133,24 +146,51 @@ function ensureBackendProfileLoaded(userId: string): void {
     .then(({ user, providerProfile }) => {
       const fullName = `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim();
       if (fullName) nameCache.set(userId, fullName);
+      const prev = backendProfileCache.get(userId) ?? {};
+      const storedAvatar = getStoredAvatar(userId);
       if (providerProfile) {
-        backendProfileCache.set(userId, backendToLocal(providerProfile));
+        const local = backendToLocal(providerProfile);
+        backendProfileCache.set(userId, {
+          ...prev,
+          ...local,
+          photoUrl: local.photoUrl || prev.photoUrl || storedAvatar || undefined,
+        });
+        if (local.photoUrl) {
+          try { localStorage.setItem(avatarKey(userId), local.photoUrl); } catch {}
+        }
       } else {
         const stored = getStoredProviderProfile(userId);
         if (stored) {
-          backendProfileCache.set(userId, backendToLocal(stored));
+          const local = backendToLocal(stored);
+          backendProfileCache.set(userId, {
+            ...prev,
+            ...local,
+            photoUrl: local.photoUrl || prev.photoUrl || storedAvatar || undefined,
+          });
         } else {
-          backendProfileCache.set(userId, {});
+          backendProfileCache.set(userId, {
+            ...prev,
+            photoUrl: prev.photoUrl || storedAvatar || undefined,
+          });
         }
       }
       emitStoreChange();
     })
     .catch(() => {
+      const prev = backendProfileCache.get(userId) ?? {};
+      const storedAvatar = getStoredAvatar(userId);
       const stored = getStoredProviderProfile(userId);
       if (stored) {
-        backendProfileCache.set(userId, backendToLocal(stored));
-        emitStoreChange();
+        const local = backendToLocal(stored);
+        backendProfileCache.set(userId, {
+          ...prev,
+          ...local,
+          photoUrl: local.photoUrl || prev.photoUrl || storedAvatar || undefined,
+        });
+      } else if (storedAvatar) {
+        backendProfileCache.set(userId, { ...prev, photoUrl: storedAvatar });
       }
+      emitStoreChange();
     })
     .finally(() => backendProfileInFlight.delete(userId));
 }
@@ -158,6 +198,9 @@ function ensureBackendProfileLoaded(userId: string): void {
 /** Seed provider photo into synchronous cache directly (e.g. from offer payload). */
 export function seedProfilePhoto(userId: string, photoUrl?: string): void {
   if (!userId || !photoUrl) return;
+  try {
+    localStorage.setItem(avatarKey(userId), photoUrl);
+  } catch {}
   const current = backendProfileCache.get(userId) ?? {};
   if (current.photoUrl !== photoUrl) {
     backendProfileCache.set(userId, { ...current, photoUrl });
@@ -241,11 +284,15 @@ export function getLocalProfile(userId: string): LocalProfile {
   ensureBackendProfileLoaded(userId);
   const backend = backendProfileCache.get(userId) ?? {};
   const draft = readLocalDraft(userId);
+  const storedAvatar = getStoredAvatar(userId);
   const merged: LocalProfile = { ...backend };
   for (const [k, v] of Object.entries(draft)) {
     if (v !== undefined && v !== null && v !== "") {
       (merged as Record<string, unknown>)[k] = v;
     }
+  }
+  if (!merged.photoUrl && storedAvatar) {
+    merged.photoUrl = storedAvatar;
   }
   return merged;
 }
@@ -265,6 +312,10 @@ export function saveLocalProfile(userId: string, data: LocalProfile): void {
   const clean: LocalProfile = rest.categories?.length
     ? { ...rest, categories: migrateCategoryValuesSafe(rest.categories) }
     : rest;
+
+  if (clean.photoUrl) {
+    try { localStorage.setItem(avatarKey(userId), clean.photoUrl); } catch {}
+  }
 
   console.log(
     `[Hormang] 💾 saveLocalProfile: user=${userId.slice(0, 8)} photo=${!!clean.photoUrl} portfolio=${clean.portfolioItems?.length ?? 0} cats=${clean.categories?.length ?? 0} bio=${!!clean.bio} region=${clean.region ?? "—"}`,

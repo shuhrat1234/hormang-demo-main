@@ -134,6 +134,7 @@ export function submitOffer(body: {
   requestId: string; price: number; priceLabel?: string; message: string;
   fileUrls?: string[]; costTanga: number;
   masterName?: string; masterInitials?: string; masterColor?: string;
+  masterPhotoUrl?: string;
 }) {
   return apiFetch<{ offer: BackendOffer }>("/offers", { method: "POST", body });
 }

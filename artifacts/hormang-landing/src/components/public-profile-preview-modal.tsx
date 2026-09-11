@@ -7,14 +7,15 @@
  * Pure UI redesign — same data-fetching logic as PublicProfileModal.
  * Phone number is NEVER shown.
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X, MapPin, ShieldCheck, Star,
   Briefcase, Award, ChevronRight, Flag,
   IdCard, Ban, LockOpen,
 } from "lucide-react";
-import { getLocalProfile, getServiceAreaLabels, getLiveProviderName } from "@/lib/local-profile";
+import { getLocalProfile, getServiceAreaLabels, getLiveProviderName, seedProfilePhoto } from "@/lib/local-profile";
+import { getProviderPublicProfile } from "@/lib/auth-client";
 import { getCategoryDisplayName } from "@/lib/categories";
 import { getAverageRatingForUser, getReviewsForUser, getCompletedCount } from "@/lib/completion-store";
 import { getAvgResponseMinutes, formatAvgResponseTime } from "@/lib/response-time-store";
@@ -161,7 +162,27 @@ function ProviderPreviewSheet({
   useStoreRefresh();
   const tt = t.publicProfilePreviewModal;
   const local = getLocalProfile(data.masterId);
-  const photoUrl = data.photoUrl || local.photoUrl;
+  const [imgError, setImgError] = useState(false);
+  const [remotePhoto, setRemotePhoto] = useState<string | undefined>(undefined);
+  const activePhotoUrl = data.photoUrl || local.photoUrl || remotePhoto;
+
+  useEffect(() => {
+    setImgError(false);
+  }, [activePhotoUrl]);
+
+  useEffect(() => {
+    if (!activePhotoUrl && data.masterId) {
+      getProviderPublicProfile(data.masterId)
+        .then(({ providerProfile: pp }) => {
+          if (pp?.photoUrl) {
+            setRemotePhoto(pp.photoUrl);
+            seedProfilePhoto(data.masterId, pp.photoUrl);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [data.masterId, activePhotoUrl]);
+
   // Prefer the provider's current name — whatever the caller passed in
   // `data.masterName` may be a snapshot frozen at offer/chat creation time.
   const liveMasterName = getLiveProviderName(data.masterId) ?? data.masterName;
@@ -265,18 +286,16 @@ function ProviderPreviewSheet({
             <div className="flex flex-col items-center text-center mb-4">
               {/* Avatar */}
               <div className="relative mb-2">
-                {photoUrl ? (
+                {activePhotoUrl && !imgError ? (
                   <img
-                    src={photoUrl}
+                    src={activePhotoUrl}
                     alt={liveMasterName}
                     className="w-32 h-32 rounded-full object-cover"
                     style={{
                       border: `3px solid ${VIOLET}`,
                       boxShadow: `0 0 0 6px hsl(262,80%,93%), 0 8px 28px rgba(139,92,246,0.22)`,
                     }}
-                    onError={(e) => {
-                      (e.currentTarget as HTMLElement).style.display = "none";
-                    }}
+                    onError={() => setImgError(true)}
                   />
                 ) : (
                   <div
@@ -602,6 +621,12 @@ function CustomerPreviewSheet({
 
   const customerLocal = data.customerId ? getLocalProfile(data.customerId) : null;
   const photoUrl = customerLocal?.photoUrl ?? data.photoUrl;
+  const [imgError, setImgError] = useState(false);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [photoUrl]);
+
   const custAvgRating = data.customerId ? getAverageRatingForUser(data.customerId, "customer") : 0;
   const custReviewCount = data.customerId ? getReviewsForUser(data.customerId, "customer").length : 0;
   const custCompletedCount = data.customerId ? getCompletedCount(data.customerId, "customer") : 0;
@@ -691,7 +716,7 @@ function CustomerPreviewSheet({
             <div className="flex flex-col items-center text-center mb-4">
               {/* Avatar */}
               <div className="relative mb-2">
-                {photoUrl ? (
+                {photoUrl && !imgError ? (
                   <img
                     src={photoUrl}
                     alt={name}
@@ -700,6 +725,7 @@ function CustomerPreviewSheet({
                       border: `3px solid ${BLUE}`,
                       boxShadow: `0 0 0 6px hsl(221,78%,93%), 0 8px 28px rgba(59,130,246,0.22)`,
                     }}
+                    onError={() => setImgError(true)}
                   />
                 ) : (
                   <div

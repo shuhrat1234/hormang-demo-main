@@ -20,7 +20,8 @@ import {
 import { useAuth } from "@/contexts/auth-context";
 import { OfferDetailModal } from "@/components/offer-detail-modal";
 import { AcceptConfirmModal } from "@/components/accept-confirm-modal";
-import { getLocalProfile } from "@/lib/local-profile";
+import { getLocalProfile, seedProfilePhoto } from "@/lib/local-profile";
+import { getProviderPublicProfile } from "@/lib/auth-client";
 import logoImg from "/hormang-logo.png";
 import { formatDate as uzDate } from "@/lib/date-utils";
 import { useI18n } from "@/contexts/i18n-context";
@@ -56,6 +57,7 @@ function OfferCard({ offer, req, index, anyAccepted, onChanged }: {
   const tt = t.chatOffersPage;
   const [showDetail, setShowDetail] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [imgError, setImgError] = useState(false);
   const [, setLocation] = useLocation();
 
   const isAccepted  = offer.status === "accepted";
@@ -64,6 +66,20 @@ function OfferCard({ offer, req, index, anyAccepted, onChanged }: {
   const isCompleted = offer.status === "completed";
   const providerLocal = getLocalProfile(offer.masterId);
   const providerPhoto = offer.masterPhotoUrl || providerLocal.photoUrl;
+
+  useEffect(() => {
+    setImgError(false);
+  }, [providerPhoto]);
+
+  useEffect(() => {
+    if (!providerPhoto && offer.masterId) {
+      getProviderPublicProfile(offer.masterId)
+        .then(({ providerProfile: pp }) => {
+          if (pp?.photoUrl) seedProfilePhoto(offer.masterId, pp.photoUrl);
+        })
+        .catch(() => {});
+    }
+  }, [offer.masterId, providerPhoto]);
 
   function handleAcceptClick(e: React.MouseEvent) {
     e.stopPropagation();
@@ -111,14 +127,12 @@ function OfferCard({ offer, req, index, anyAccepted, onChanged }: {
         <div className="p-4">
           {/* Provider row */}
           <div className="flex items-start gap-3 mb-3">
-            {providerPhoto ? (
+            {providerPhoto && !imgError ? (
               <img
                 src={providerPhoto}
                 alt={offer.masterName}
                 className="w-11 h-11 rounded-2xl object-cover border border-gray-200 flex-shrink-0 shadow-sm"
-                onError={(e) => {
-                  (e.currentTarget as HTMLElement).style.display = "none";
-                }}
+                onError={() => setImgError(true)}
               />
             ) : (
               <div

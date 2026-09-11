@@ -8,7 +8,7 @@
  * that touches shared (cross-device) data is now async.
  */
 import { getBlockedUsers } from "./report-store";
-import { getLiveProviderName, seedProfilePhoto } from "./local-profile";
+import { getLiveProviderName, seedProfilePhoto, getLocalProfile } from "./local-profile";
 import { emitStoreChange } from "./store-events";
 import * as api from "./requests-client";
 import { ApiError } from "./requests-client";
@@ -178,15 +178,16 @@ function toCustomerRequest(r: api.BackendRequest): CustomerRequest {
   return { ...r, offerCount: r.offerCount ?? 0 };
 }
 function toOffer(o: api.BackendOffer): Offer {
-  if (o.masterPhotoUrl) {
-    seedProfilePhoto(o.masterId, o.masterPhotoUrl);
+  const photo = o.masterPhotoUrl || getLocalProfile(o.masterId).photoUrl;
+  if (photo) {
+    seedProfilePhoto(o.masterId, photo);
   }
   // Prefer the provider's current name over the snapshot frozen on the offer
   // at submission time — the snapshot goes stale the moment they rename
   // themselves. Falls back to the snapshot until the live name loads.
   return {
     ...o,
-    masterPhotoUrl: o.masterPhotoUrl,
+    masterPhotoUrl: o.masterPhotoUrl || photo,
     masterName: getLiveProviderName(o.masterId) ?? o.masterName,
   };
 }
@@ -391,6 +392,7 @@ export async function submitOffer(body: {
   requestId: string; price: number; priceLabel?: string; message: string;
   fileUrls?: string[]; costTanga: number;
   masterName?: string; masterInitials?: string; masterColor?: string;
+  masterPhotoUrl?: string;
 }): Promise<Offer> {
   const { offer } = await api.submitOffer(body);
   return toOffer(offer);
