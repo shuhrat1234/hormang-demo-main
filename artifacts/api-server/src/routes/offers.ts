@@ -145,6 +145,7 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
       requestId?: string; price?: number; priceLabel?: string; message?: string;
       fileUrls?: string[]; costTanga?: number;
       masterName?: string; masterInitials?: string; masterColor?: string;
+      masterPhotoUrl?: string;
     };
     if (!body.requestId || !body.price || !body.message?.trim() || !body.costTanga) {
       res.status(400).json({ error: "requestId, price, message, costTanga talab qilinadi" });
@@ -215,13 +216,36 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
       res.status(400).json({ error: "insufficient_balance" });
       return;
     }
+
+    let photo = body.masterPhotoUrl;
     const [profile] = await db
-      .select({ photoUrl: providerProfilesTable.photoUrl })
+      .select({ id: providerProfilesTable.id, photoUrl: providerProfilesTable.photoUrl })
       .from(providerProfilesTable)
       .where(eq(providerProfilesTable.userId, masterId))
       .limit(1);
 
-    res.status(201).json({ offer: toJson(createdOffer!, profile?.photoUrl) });
+    if (profile) {
+      if (!profile.photoUrl && body.masterPhotoUrl) {
+        await db
+          .update(providerProfilesTable)
+          .set({ photoUrl: body.masterPhotoUrl, updatedAt: new Date() })
+          .where(eq(providerProfilesTable.id, profile.id));
+        photo = body.masterPhotoUrl;
+      } else if (profile.photoUrl) {
+        photo = profile.photoUrl;
+      }
+    } else if (body.masterPhotoUrl) {
+      await db
+        .insert(providerProfilesTable)
+        .values({
+          userId: masterId,
+          categories: [check.request!.categoryId],
+          photoUrl: body.masterPhotoUrl,
+        })
+        .onConflictDoNothing();
+    }
+
+    res.status(201).json({ offer: toJson(createdOffer!, photo || profile?.photoUrl) });
   } catch (err) {
     console.error("Create offer error:", err);
     res.status(500).json({ error: "Xatolik yuz berdi" });

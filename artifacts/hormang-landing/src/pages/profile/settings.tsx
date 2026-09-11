@@ -341,7 +341,7 @@ export default function ProfileSettingsPage() {
       `[Hormang] 🔍 loadProfile: user=${user.id.slice(0, 8)} bio=${!!loaded.bio} cats=${loaded.categories?.length ?? 0} portfolio=${loaded.portfolioItems?.length ?? 0}`,
     );
     setLocal(loaded);
-    setPhotoUrl(loaded.photoUrl);
+    setPhotoUrl(loaded.photoUrl || providerProfile?.photoUrl || undefined);
 
     setFirstName(user.firstName ?? "");
     setLastName(user.lastName ?? "");
@@ -614,7 +614,7 @@ export default function ProfileSettingsPage() {
               categories: selectedServices,
               bio: bio || undefined,
               preferredLocation: region ? (district ? `${region}, ${district}` : region) : undefined,
-              photoUrl: photoUrl ?? null,
+              photoUrl: photoUrl !== undefined ? photoUrl : (providerProfile?.photoUrl ?? undefined),
               experience: experience ? Number(experience) : null,
               region: region || null,
               district: district || null,

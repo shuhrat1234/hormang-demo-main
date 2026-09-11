@@ -21,7 +21,8 @@ import { useStoreRefresh } from "@/hooks/use-store-refresh";
 import { getTransactionByOfferId } from "@/lib/tanga-history-store";
 import { getAllQuestionsForCategory, collectActiveQuestions } from "@/lib/questionnaire-store";
 import { formatDate as formatUzDate } from "@/lib/date-utils";
-import { getLocalProfile } from "@/lib/local-profile";
+import { getLocalProfile, seedProfilePhoto } from "@/lib/local-profile";
+import { getProviderPublicProfile } from "@/lib/auth-client";
 import { getAvgResponseMinutes, formatAvgResponseTime } from "@/lib/response-time-store";
 import { PublicProfilePreviewModal } from "@/components/public-profile-preview-modal";
 import { AcceptConfirmModal } from "@/components/accept-confirm-modal";
@@ -123,6 +124,7 @@ export function OfferDetailModal({ offer, onClose, onStatusChange, readOnly = fa
   const [showProviderProfile, setShowProviderProfile] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const { t, locale } = useI18n();
+  useStoreRefresh();
   const tt = t.offerDetailModal;
 
   /* ── Reactive live data ───────────────────────────────────────────
@@ -130,6 +132,7 @@ export function OfferDetailModal({ offer, onClose, onStatusChange, readOnly = fa
      even if updateOfferStatus() was called elsewhere (e.g. the list card). */
   const [allOffers, setAllOffers] = useState<Offer[]>([offer]);
   const [req, setReq] = useState<CustomerRequest | undefined>(undefined);
+  const [imgError, setImgError] = useState(false);
   const load = useCallback(() => {
     Promise.all([getOffersByRequestId(offer.requestId), getRequestById(offer.requestId)])
       .then(([offers, request]) => { setAllOffers(offers); setReq(request); })
@@ -160,6 +163,20 @@ export function OfferDetailModal({ offer, onClose, onStatusChange, readOnly = fa
 
   const providerLocal = getLocalProfile(offer.masterId);
   const providerPhoto = offer.masterPhotoUrl || liveOffer.masterPhotoUrl || providerLocal.photoUrl;
+
+  useEffect(() => {
+    setImgError(false);
+  }, [providerPhoto]);
+
+  useEffect(() => {
+    if (!providerPhoto && offer.masterId) {
+      getProviderPublicProfile(offer.masterId)
+        .then(({ providerProfile: pp }) => {
+          if (pp?.photoUrl) seedProfilePhoto(offer.masterId, pp.photoUrl);
+        })
+        .catch(() => {});
+    }
+  }, [offer.masterId, providerPhoto]);
 
   /* Build Q&A pairs from request (skip image answers)
      collectActiveQuestions traverses conditional branches so follow-up
@@ -280,14 +297,12 @@ export function OfferDetailModal({ offer, onClose, onStatusChange, readOnly = fa
               {/* Provider header */}
               <div className="px-4 pt-4 pb-3 border-b border-gray-100">
                 <div className="flex items-start gap-3">
-                  {providerPhoto ? (
+                  {providerPhoto && !imgError ? (
                     <img
                       src={providerPhoto}
                       alt={offer.masterName}
                       className="w-12 h-12 rounded-2xl object-cover border border-gray-200 flex-shrink-0 shadow-sm"
-                      onError={(e) => {
-                        (e.currentTarget as HTMLElement).style.display = "none";
-                      }}
+                      onError={() => setImgError(true)}
                     />
                   ) : (
                     <div

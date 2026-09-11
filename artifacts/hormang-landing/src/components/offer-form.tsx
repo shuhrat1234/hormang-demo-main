@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
+import { getLocalProfile } from "@/lib/local-profile";
 import {
   saveOffer, updateProviderRequestStatus, markSeen,
   getAvgResponseMinutes,
@@ -107,7 +108,7 @@ interface Props {
 export function OfferForm({ request, onClose, onSubmitted }: Props) {
   useStoreRefresh();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, providerProfile } = useAuth();
   const [, setLocation] = useLocation();
   const { t, locale } = useI18n();
   /* Tanga cost calculation — client-computed from the (already backend-cached)
@@ -194,6 +195,8 @@ export function OfferForm({ request, onClose, onSubmitted }: Props) {
     const initials = `${firstName[0] ?? ""}${lastName[0] ?? ""}`.toUpperCase() || "IJ";
     const palette = ["#7C3AED", "#2563EB", "#059669", "#D97706", "#DC2626", "#0891B2"];
     const color = palette[(user?.id?.charCodeAt(0) ?? 0) % palette.length];
+    const localProfile = user?.id ? getLocalProfile(user.id) : undefined;
+    const providerPhoto = localProfile?.photoUrl || providerProfile?.photoUrl || undefined;
 
     /* Single atomic backend call: validates offer limits/request state,
        debits the wallet, creates the offer, and opens the chat — all in one
@@ -208,7 +211,7 @@ export function OfferForm({ request, onClose, onSubmitted }: Props) {
           termsAccepted: termsChecked,
           fileUrls: offerPhotos,
         },
-        user ? { id: user.id, name: fullName, initials, color } : undefined,
+        user ? { id: user.id, name: fullName, initials, color, photoUrl: providerPhoto } : undefined,
         offerCost,
       );
     } catch (err) {

@@ -19,7 +19,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
 import { OfferDetailModal } from "@/components/offer-detail-modal";
-import { getLocalProfile } from "@/lib/local-profile";
+import { getLocalProfile, seedProfilePhoto } from "@/lib/local-profile";
+import { getProviderPublicProfile } from "@/lib/auth-client";
 import logoImg from "/hormang-logo.png";
 import { formatDate } from "@/lib/date-utils";
 import { useI18n } from "@/contexts/i18n-context";
@@ -30,7 +31,9 @@ import { getAvgResponseMinutes, formatAvgResponseTime } from "@/lib/response-tim
 
 /* ─── Offer Card ─────────────────────────────────────────────────── */
 function OfferCard({ offer, req, index, anyAccepted, onChanged }: { offer: Offer; req: CustomerRequest | undefined; index: number; anyAccepted: boolean; onChanged: () => void }) {
+  useStoreRefresh();
   const [showDetail, setShowDetail] = useState(false);
+  const [imgError, setImgError] = useState(false);
   const { toast } = useToast();
   const { t, locale } = useI18n();
   const tt = t.offersPage;
@@ -39,6 +42,20 @@ function OfferCard({ offer, req, index, anyAccepted, onChanged }: { offer: Offer
   const isRejected = offer.status === "rejected";
   const providerLocal = getLocalProfile(offer.masterId);
   const providerPhoto = offer.masterPhotoUrl || providerLocal.photoUrl;
+
+  useEffect(() => {
+    setImgError(false);
+  }, [providerPhoto]);
+
+  useEffect(() => {
+    if (!providerPhoto && offer.masterId) {
+      getProviderPublicProfile(offer.masterId)
+        .then(({ providerProfile: pp }) => {
+          if (pp?.photoUrl) seedProfilePhoto(offer.masterId, pp.photoUrl);
+        })
+        .catch(() => {});
+    }
+  }, [offer.masterId, providerPhoto]);
 
   // Can accept only if no other offer on this request is already accepted
   const canAccept = !isAccepted && !isRejected && !anyAccepted;
@@ -81,14 +98,12 @@ function OfferCard({ offer, req, index, anyAccepted, onChanged }: { offer: Offer
         <div className="p-4">
           {/* Provider info row */}
           <div className="flex items-start gap-3 mb-3">
-            {providerPhoto ? (
+            {providerPhoto && !imgError ? (
               <img
                 src={providerPhoto}
                 alt={offer.masterName}
                 className="w-11 h-11 rounded-2xl object-cover border border-gray-200 flex-shrink-0 shadow-sm"
-                onError={(e) => {
-                  (e.currentTarget as HTMLElement).style.display = "none";
-                }}
+                onError={() => setImgError(true)}
               />
             ) : (
               <div
