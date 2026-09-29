@@ -58,7 +58,6 @@ function OfferCard({ offer, req, index, anyAccepted, onChanged }: {
   const tt = t.chatOffersPage;
   const [showDetail, setShowDetail] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [imgError, setImgError] = useState(false);
   const [, setLocation] = useLocation();
 
   const isAccepted  = offer.status === "accepted";

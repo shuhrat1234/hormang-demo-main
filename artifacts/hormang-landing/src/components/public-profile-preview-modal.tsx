@@ -286,11 +286,7 @@ function ProviderPreviewSheet({
             <div className="flex flex-col items-center text-center mb-4">
               {/* Avatar */}
               <div className="relative mb-2">
-<<<<<<< HEAD
-                {photoUrl && !imgError ? (
-=======
                 {activePhotoUrl && !imgError ? (
->>>>>>> origin/main
                   <img
                     src={activePhotoUrl}
                     alt={liveMasterName}

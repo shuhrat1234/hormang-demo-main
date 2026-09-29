@@ -33,7 +33,6 @@ import { getAvgResponseMinutes, formatAvgResponseTime } from "@/lib/response-tim
 function OfferCard({ offer, req, index, anyAccepted, onChanged }: { offer: Offer; req: CustomerRequest | undefined; index: number; anyAccepted: boolean; onChanged: () => void }) {
   useStoreRefresh();
   const [showDetail, setShowDetail] = useState(false);
-  const [imgError, setImgError] = useState(false);
   const { toast } = useToast();
   const { t, locale } = useI18n();
   const tt = t.offersPage;

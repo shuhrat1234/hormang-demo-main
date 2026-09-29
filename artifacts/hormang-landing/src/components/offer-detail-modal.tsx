@@ -132,7 +132,6 @@ export function OfferDetailModal({ offer, onClose, onStatusChange, readOnly = fa
      even if updateOfferStatus() was called elsewhere (e.g. the list card). */
   const [allOffers, setAllOffers] = useState<Offer[]>([offer]);
   const [req, setReq] = useState<CustomerRequest | undefined>(undefined);
-  const [imgError, setImgError] = useState(false);
   const load = useCallback(() => {
     Promise.all([getOffersByRequestId(offer.requestId), getRequestById(offer.requestId)])
       .then(([offers, request]) => { setAllOffers(offers); setReq(request); })
