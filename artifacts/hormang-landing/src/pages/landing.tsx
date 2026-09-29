@@ -72,12 +72,12 @@ function HeroSection() {
       />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid lg:grid-cols-2 gap-10 lg:gap-8 items-center">
+        <div className="grid lg:grid-cols-12 gap-8 lg:gap-4 items-center">
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: EASE }}
-            className="text-center lg:text-left"
+            className="lg:col-span-6 xl:col-span-6 text-center lg:text-left z-10"
           >
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50/80 border border-blue-200/70 text-blue-600 text-[11px] sm:text-xs font-bold tracking-wide uppercase shadow-2xs">
               <Sparkles className="w-3.5 h-3.5 text-blue-500 fill-blue-500/20" />
@@ -114,13 +114,13 @@ function HeroSection() {
               </Button>
             </div>
 
-            <div className="mt-10 pt-2 flex flex-wrap gap-5 sm:gap-7 justify-center lg:justify-start items-center">
+            <div className="mt-10 pt-2 flex flex-row flex-nowrap items-center gap-3.5 sm:gap-6 xl:gap-7 justify-center lg:justify-start overflow-x-auto sm:overflow-visible pb-2 sm:pb-0">
               {trust.map(({ icon: Icon, label }) => (
-                <div key={label} className="flex items-center gap-3">
+                <div key={label} className="flex items-center gap-2.5 sm:gap-3 shrink-0">
                   <div className="w-10 h-10 rounded-xl bg-blue-50/90 border border-blue-100 flex items-center justify-center text-blue-600 shadow-xs shrink-0">
                     <Icon className="w-5 h-5" />
                   </div>
-                  <span className="text-xs sm:text-sm font-semibold text-gray-700 leading-snug max-w-[130px] text-left">
+                  <span className="text-xs sm:text-sm font-semibold text-gray-700 leading-tight max-w-[105px] sm:max-w-[125px] text-left">
                     {label}
                   </span>
                 </div>
@@ -129,17 +129,19 @@ function HeroSection() {
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, x: 20, scale: 0.96 }}
+            initial={{ opacity: 0, x: 24, scale: 0.95 }}
             animate={{ opacity: 1, x: 0, scale: 1 }}
             transition={{ duration: 0.9, ease: EASE, delay: 0.15 }}
-            className="relative flex items-center justify-center lg:justify-end"
+            className="lg:col-span-6 xl:col-span-6 relative flex items-center justify-center lg:justify-end"
           >
-            <img
-              src="/images/hero.png"
-              alt={t.landing.hero.surveyAlt}
-              className="w-full max-w-[480px] sm:max-w-[560px] lg:max-w-[620px] xl:max-w-[680px] h-auto object-contain select-none pointer-events-none drop-shadow-xl"
-              loading="eager"
-            />
+            <div className="relative w-full max-w-[500px] sm:max-w-[580px] lg:max-w-[680px] xl:max-w-[760px] 2xl:max-w-[820px] lg:scale-110 xl:scale-115 lg:origin-right">
+              <img
+                src="/images/hero.png"
+                alt={t.landing.hero.surveyAlt}
+                className="w-full h-auto object-contain select-none pointer-events-none drop-shadow-2xl"
+                loading="eager"
+              />
+            </div>
           </motion.div>
         </div>
       </div>
