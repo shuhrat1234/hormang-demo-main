@@ -144,7 +144,12 @@ export function Navbar() {
                     <span className="text-sm font-semibold text-gray-800">{user.firstName}</span>
                   </motion.button>
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                    <Button variant="ghost" size="sm" onClick={handleLogout} className="text-gray-500 hover:text-gray-800 gap-1.5 font-medium">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleLogout}
+                      className="text-gray-500 hover:text-gray-800 hover:bg-gray-100 active:bg-gray-200 gap-1.5 font-medium transition-colors"
+                    >
                       <LogOut className="w-3.5 h-3.5" />
                       {t.navbar.logout}
                     </Button>
@@ -155,7 +160,7 @@ export function Navbar() {
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
                     <Button
                       variant="ghost"
-                      className="font-semibold text-gray-600 hover:text-gray-900 gap-1.5"
+                      className="font-semibold text-gray-600 hover:text-blue-600 hover:bg-blue-50/80 active:bg-blue-100 gap-1.5 transition-colors"
                       onClick={() => setLocation("/auth/login")}
                     >
                       <User className="w-3.5 h-3.5" />
@@ -164,7 +169,7 @@ export function Navbar() {
                   </motion.div>
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.38 }}>
                     <Button
-                      className="font-semibold bg-blue-500 hover:bg-blue-700 shadow-sm"
+                      className="font-semibold bg-blue-500 hover:bg-blue-700 hover:brightness-105 active:scale-[0.98] shadow-sm transition-all"
                       onClick={() => setLocation("/auth/role")}
                     >
                       {t.navbar.signup}
@@ -231,7 +236,11 @@ export function Navbar() {
                     >
                       {user.firstName} {user.lastName}
                     </Button>
-                    <Button variant="ghost" className="w-full font-semibold gap-2 text-gray-500" onClick={handleLogout}>
+                    <Button
+                      variant="ghost"
+                      className="w-full font-semibold gap-2 text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-colors"
+                      onClick={handleLogout}
+                    >
                       <LogOut className="w-4 h-4" /> {t.navbar.logout}
                     </Button>
                   </>
@@ -239,13 +248,13 @@ export function Navbar() {
                   <>
                     <Button
                       variant="outline"
-                      className="w-full font-semibold border-gray-200"
+                      className="w-full font-semibold border-gray-200 text-gray-700 hover:text-blue-600 hover:bg-blue-50/80 hover:border-blue-300 transition-all"
                       onClick={() => { setMobileMenuOpen(false); setLocation("/auth/login"); }}
                     >
                       {t.navbar.login}
                     </Button>
                     <Button
-                      className="w-full font-semibold bg-blue-600 hover:bg-blue-700"
+                      className="w-full font-semibold bg-blue-600 hover:bg-blue-700 hover:brightness-105 active:scale-[0.98] transition-all"
                       onClick={() => { setMobileMenuOpen(false); setLocation("/auth/role"); }}
                     >
                       {t.navbar.signup}
