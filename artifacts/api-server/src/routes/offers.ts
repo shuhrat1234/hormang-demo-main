@@ -229,7 +229,6 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
       res.status(400).json({ error: "insufficient_balance" });
       return;
     }
-
     if (body.masterPhotoUrl) {
       const [existingProf] = await db
         .select({ id: providerProfilesTable.id, photoUrl: providerProfilesTable.photoUrl })

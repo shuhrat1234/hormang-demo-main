@@ -58,6 +58,7 @@ function OfferCard({ offer, req, index, anyAccepted, onChanged }: {
   const tt = t.chatOffersPage;
   const [showDetail, setShowDetail] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [imgError, setImgError] = useState(false);
   const [, setLocation] = useLocation();
 
   const isAccepted  = offer.status === "accepted";
@@ -80,6 +81,20 @@ function OfferCard({ offer, req, index, anyAccepted, onChanged }: {
   }, [offer.masterId, directPhoto]);
 
   const providerPhoto = directPhoto || offer.masterPhotoUrl || providerLocal.photoUrl;
+
+  useEffect(() => {
+    setImgError(false);
+  }, [providerPhoto]);
+
+  useEffect(() => {
+    if (!providerPhoto && offer.masterId) {
+      getProviderPublicProfile(offer.masterId)
+        .then(({ providerProfile: pp }) => {
+          if (pp?.photoUrl) seedProfilePhoto(offer.masterId, pp.photoUrl);
+        })
+        .catch(() => {});
+    }
+  }, [offer.masterId, providerPhoto]);
 
   function handleAcceptClick(e: React.MouseEvent) {
     e.stopPropagation();

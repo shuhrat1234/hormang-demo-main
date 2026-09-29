@@ -33,6 +33,7 @@ import { getAvgResponseMinutes, formatAvgResponseTime } from "@/lib/response-tim
 function OfferCard({ offer, req, index, anyAccepted, onChanged }: { offer: Offer; req: CustomerRequest | undefined; index: number; anyAccepted: boolean; onChanged: () => void }) {
   useStoreRefresh();
   const [showDetail, setShowDetail] = useState(false);
+  const [imgError, setImgError] = useState(false);
   const { toast } = useToast();
   const { t, locale } = useI18n();
   const tt = t.offersPage;
@@ -55,6 +56,20 @@ function OfferCard({ offer, req, index, anyAccepted, onChanged }: { offer: Offer
   }, [offer.masterId, directPhoto]);
 
   const providerPhoto = directPhoto || offer.masterPhotoUrl || providerLocal.photoUrl;
+
+  useEffect(() => {
+    setImgError(false);
+  }, [providerPhoto]);
+
+  useEffect(() => {
+    if (!providerPhoto && offer.masterId) {
+      getProviderPublicProfile(offer.masterId)
+        .then(({ providerProfile: pp }) => {
+          if (pp?.photoUrl) seedProfilePhoto(offer.masterId, pp.photoUrl);
+        })
+        .catch(() => {});
+    }
+  }, [offer.masterId, providerPhoto]);
 
   // Can accept only if no other offer on this request is already accepted
   const canAccept = !isAccepted && !isRejected && !anyAccepted;

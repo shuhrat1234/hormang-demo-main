@@ -196,7 +196,7 @@ export function OfferForm({ request, onClose, onSubmitted }: Props) {
     const palette = ["#7C3AED", "#2563EB", "#059669", "#D97706", "#DC2626", "#0891B2"];
     const color = palette[(user?.id?.charCodeAt(0) ?? 0) % palette.length];
     const local = user?.id ? getLocalProfile(user.id) : undefined;
-    const photoUrl = local?.photoUrl || providerProfile?.photoUrl;
+    const photoUrl = local?.photoUrl || providerProfile?.photoUrl || undefined;
 
     /* Single atomic backend call: validates offer limits/request state,
        debits the wallet, creates the offer, and opens the chat — all in one
@@ -211,7 +211,7 @@ export function OfferForm({ request, onClose, onSubmitted }: Props) {
           termsAccepted: termsChecked,
           fileUrls: offerPhotos,
         },
-        user ? { id: user.id, name: fullName, initials, color, photoUrl: photoUrl || undefined } : undefined,
+        user ? { id: user.id, name: fullName, initials, color, photoUrl } : undefined,
         offerCost,
       );
     } catch (err) {
