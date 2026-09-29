@@ -84,11 +84,12 @@ function HeroSection() {
               <span>{t.landing.hero.badge}</span>
             </div>
 
-            <h1 className="mt-6 font-display text-4xl sm:text-5xl lg:text-[3.4rem] font-extrabold leading-[1.1] tracking-tight text-gray-900">
-              {t.landing.hero.headlineLine1}{" "}
-              <RotatingWord words={t.landing.rotateWords} />
-              <br className="hidden sm:block" />{" "}
-              {t.landing.hero.headlineLine3}
+            <h1 className="mt-6 font-display text-3xl sm:text-4xl md:text-5xl lg:text-[3.5rem] font-extrabold leading-[1.12] tracking-tight text-gray-900">
+              <span className="block">{t.landing.hero.headlineLine1}</span>
+              <span className="block text-blue-600">
+                <RotatingWord words={t.landing.rotateWords} />
+              </span>
+              <span className="block">{t.landing.hero.headlineLine3}</span>
             </h1>
 
             <p className="mt-5 text-base sm:text-lg text-gray-600 leading-relaxed max-w-xl mx-auto lg:mx-0">
@@ -114,13 +115,16 @@ function HeroSection() {
               </Button>
             </div>
 
-            <div className="mt-10 pt-2 flex flex-row flex-nowrap items-center gap-3.5 sm:gap-6 xl:gap-7 justify-center lg:justify-start overflow-x-auto sm:overflow-visible pb-2 sm:pb-0">
+            <div className="mt-8 sm:mt-10 pt-2 grid grid-cols-3 gap-2 sm:gap-4 lg:flex lg:flex-row lg:flex-nowrap lg:gap-6 xl:gap-8 justify-center lg:justify-start max-w-md sm:max-w-lg lg:max-w-none mx-auto lg:mx-0">
               {trust.map(({ icon: Icon, label }) => (
-                <div key={label} className="flex items-center gap-2.5 sm:gap-3 shrink-0">
-                  <div className="w-10 h-10 rounded-xl bg-blue-50/90 border border-blue-100 flex items-center justify-center text-blue-600 shadow-xs shrink-0">
-                    <Icon className="w-5 h-5" />
+                <div
+                  key={label}
+                  className="flex flex-col sm:flex-row items-center gap-1.5 sm:gap-2.5 lg:gap-3 text-center sm:text-left"
+                >
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-blue-50/90 border border-blue-100 flex items-center justify-center text-blue-600 shadow-xs shrink-0">
+                    <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
-                  <span className="text-xs sm:text-sm font-semibold text-gray-700 leading-tight max-w-[105px] sm:max-w-[125px] text-left">
+                  <span className="text-[10px] sm:text-xs lg:text-sm font-semibold text-gray-700 leading-tight">
                     {label}
                   </span>
                 </div>
@@ -132,13 +136,13 @@ function HeroSection() {
             initial={{ opacity: 0, x: 24, scale: 0.95 }}
             animate={{ opacity: 1, x: 0, scale: 1 }}
             transition={{ duration: 0.9, ease: EASE, delay: 0.15 }}
-            className="lg:col-span-6 xl:col-span-6 relative flex items-center justify-center lg:justify-end"
+            className="lg:col-span-6 xl:col-span-6 relative flex items-center justify-center lg:justify-end lg:translate-x-6 xl:translate-x-10 mt-8 lg:mt-0"
           >
-            <div className="relative w-full max-w-[500px] sm:max-w-[580px] lg:max-w-[680px] xl:max-w-[760px] 2xl:max-w-[820px] lg:scale-110 xl:scale-115 lg:origin-right">
+            <div className="relative w-full max-w-[340px] xs:max-w-[420px] sm:max-w-[540px] lg:max-w-[740px] xl:max-w-[840px] 2xl:max-w-[920px] lg:scale-120 xl:scale-125 lg:origin-right">
               <img
                 src="/images/hero.png"
                 alt={t.landing.hero.surveyAlt}
-                className="w-full h-auto object-contain select-none pointer-events-none drop-shadow-2xl"
+                className="w-full h-auto object-contain select-none pointer-events-none drop-shadow-2xl mx-auto"
                 loading="eager"
               />
             </div>
