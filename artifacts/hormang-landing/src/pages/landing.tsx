@@ -72,19 +72,19 @@ function HeroSection() {
       />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid lg:grid-cols-12 gap-8 lg:gap-4 items-center">
+        <div className="grid lg:grid-cols-12 gap-8 lg:gap-6 items-center">
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: EASE }}
-            className="lg:col-span-6 xl:col-span-6 text-center lg:text-left z-10"
+            className="lg:col-span-5 xl:col-span-5 text-center lg:text-left z-10"
           >
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50/80 border border-blue-200/70 text-blue-600 text-[11px] sm:text-xs font-bold tracking-wide uppercase shadow-2xs">
               <Sparkles className="w-3.5 h-3.5 text-blue-500 fill-blue-500/20" />
               <span>{t.landing.hero.badge}</span>
             </div>
 
-            <h1 className="mt-6 font-display text-3xl sm:text-4xl md:text-5xl lg:text-[3.5rem] font-extrabold leading-[1.12] tracking-tight text-gray-900">
+            <h1 className="mt-6 font-display text-3xl sm:text-4xl md:text-5xl lg:text-[3.4rem] font-extrabold leading-[1.12] tracking-tight text-gray-900">
               <span className="block">{t.landing.hero.headlineLine1}</span>
               <span className="block text-blue-600">
                 <RotatingWord words={t.landing.rotateWords} />
@@ -115,16 +115,16 @@ function HeroSection() {
               </Button>
             </div>
 
-            <div className="mt-8 sm:mt-10 pt-2 grid grid-cols-3 gap-2 sm:gap-4 lg:flex lg:flex-row lg:flex-nowrap lg:gap-6 xl:gap-8 justify-center lg:justify-start max-w-md sm:max-w-lg lg:max-w-none mx-auto lg:mx-0">
+            <div className="mt-8 sm:mt-10 pt-2 grid grid-cols-3 gap-2 sm:gap-4 lg:flex lg:flex-row lg:flex-nowrap lg:gap-5 xl:gap-7 justify-center lg:justify-start max-w-md sm:max-w-lg lg:max-w-none mx-auto lg:mx-0">
               {trust.map(({ icon: Icon, label }) => (
                 <div
                   key={label}
-                  className="flex flex-col sm:flex-row items-center gap-1.5 sm:gap-2.5 lg:gap-3 text-center sm:text-left"
+                  className="flex flex-col sm:flex-row items-center gap-1.5 sm:gap-2.5 lg:gap-3 text-center sm:text-left shrink-0"
                 >
                   <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-blue-50/90 border border-blue-100 flex items-center justify-center text-blue-600 shadow-xs shrink-0">
                     <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
-                  <span className="text-[10px] sm:text-xs lg:text-sm font-semibold text-gray-700 leading-tight">
+                  <span className="text-[10px] sm:text-xs lg:text-sm font-semibold text-gray-700 leading-tight max-w-[115px]">
                     {label}
                   </span>
                 </div>
@@ -136,13 +136,13 @@ function HeroSection() {
             initial={{ opacity: 0, x: 24, scale: 0.95 }}
             animate={{ opacity: 1, x: 0, scale: 1 }}
             transition={{ duration: 0.9, ease: EASE, delay: 0.15 }}
-            className="lg:col-span-6 xl:col-span-6 relative flex items-center justify-center lg:justify-end lg:translate-x-6 xl:translate-x-10 mt-8 lg:mt-0"
+            className="lg:col-span-7 xl:col-span-7 relative flex items-center justify-center lg:justify-end mt-8 lg:mt-0"
           >
-            <div className="relative w-full max-w-[340px] xs:max-w-[420px] sm:max-w-[540px] lg:max-w-[740px] xl:max-w-[840px] 2xl:max-w-[920px] lg:scale-120 xl:scale-125 lg:origin-right">
+            <div className="relative w-full max-w-[360px] sm:max-w-[520px] lg:max-w-[660px] xl:max-w-[740px] lg:ml-auto lg:mr-0 lg:translate-x-10 xl:translate-x-16 2xl:translate-x-24 lg:scale-110 xl:scale-[1.15] lg:origin-center">
               <img
                 src="/images/hero.png"
                 alt={t.landing.hero.surveyAlt}
-                className="w-full h-auto object-contain select-none pointer-events-none drop-shadow-2xl mx-auto"
+                className="w-full h-auto object-contain select-none pointer-events-none drop-shadow-2xl mx-auto lg:ml-auto lg:mr-0"
                 loading="eager"
               />
             </div>
