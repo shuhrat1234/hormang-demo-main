@@ -29,7 +29,7 @@ function RotatingWord({ words }: { words: string[] }) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -14 }}
           transition={{ duration: 0.4, ease: EASE }}
-          className="inline-block text-gradient"
+          className="inline-block text-blue-600 font-extrabold"
         >
           {words[i]}
         </motion.span>
@@ -58,42 +58,47 @@ function HeroSection() {
   const { t } = useI18n();
   const [, setLocation] = useLocation();
   const trust = [
-    { icon: BadgeCheck, label: t.landing.hero.trust.verified },
-    { icon: ShieldCheck, label: t.landing.hero.trust.noHidden },
-    { icon: CreditCard, label: t.landing.hero.trust.payAfter },
+    { icon: ShieldCheck, label: t.landing.hero.trust.verified },
+    { icon: CreditCard, label: t.landing.hero.trust.noHidden },
+    { icon: Wallet, label: t.landing.hero.trust.payAfter },
   ];
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-blue-50/70 via-white to-white pt-28 pb-20 md:pt-32 md:pb-28">
-      <div className="absolute -top-24 -right-24 w-[28rem] h-[28rem] rounded-full bg-blue-200/30 blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-32 -left-24 w-[26rem] h-[26rem] rounded-full bg-sky-200/25 blur-3xl pointer-events-none" />
+    <section className="relative overflow-hidden bg-white pt-28 pb-16 md:pt-36 md:pb-24 lg:pt-40 lg:pb-28">
+      {/* Background with silk waves matching mockup */}
+      <div
+        className="absolute inset-0 bg-cover bg-center sm:bg-[center_top] pointer-events-none opacity-95"
+        style={{ backgroundImage: "url('/images/hero-bg.png')" }}
+      />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid lg:grid-cols-2 gap-14 lg:gap-10 items-center">
+        <div className="grid lg:grid-cols-2 gap-10 lg:gap-8 items-center">
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: EASE }}
             className="text-center lg:text-left"
           >
-            <span className="pill-label mb-6 inline-flex">
-              <Sparkles className="w-3.5 h-3.5" />
-              {t.landing.hero.badge}
-            </span>
-            <h1 className="font-display text-4xl sm:text-5xl lg:text-[3.4rem] font-extrabold leading-[1.08] tracking-tight text-gray-900">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50/80 border border-blue-200/70 text-blue-600 text-[11px] sm:text-xs font-bold tracking-wide uppercase shadow-2xs">
+              <Sparkles className="w-3.5 h-3.5 text-blue-500 fill-blue-500/20" />
+              <span>{t.landing.hero.badge}</span>
+            </div>
+
+            <h1 className="mt-6 font-display text-4xl sm:text-5xl lg:text-[3.4rem] font-extrabold leading-[1.1] tracking-tight text-gray-900">
               {t.landing.hero.headlineLine1}{" "}
               <RotatingWord words={t.landing.rotateWords} />
               <br className="hidden sm:block" />{" "}
               {t.landing.hero.headlineLine3}
             </h1>
-            <p className="mt-6 text-base md:text-lg text-gray-500 leading-relaxed max-w-xl mx-auto lg:mx-0">
+
+            <p className="mt-5 text-base sm:text-lg text-gray-600 leading-relaxed max-w-xl mx-auto lg:mx-0">
               {t.landing.hero.subtext}
             </p>
 
-            <div className="mt-8 flex flex-col sm:flex-row gap-3.5 justify-center lg:justify-start">
+            <div className="mt-8 flex flex-col sm:flex-row gap-3.5 justify-center lg:justify-start items-stretch sm:items-center">
               <Button
                 size="lg"
-                className="h-13 px-7 rounded-xl font-semibold text-sm gap-2 bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-200"
+                className="h-12 sm:h-13 px-7 rounded-2xl font-bold text-sm sm:text-base gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/25 active:scale-[0.98] transition-all"
                 onClick={() => setLocation("/questionnaire")}
               >
                 {t.landing.hero.startSurvey}
@@ -102,48 +107,39 @@ function HeroSection() {
               <Button
                 size="lg"
                 variant="outline"
-                className="h-13 px-7 rounded-xl font-semibold text-sm border-gray-200 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200"
+                className="h-12 sm:h-13 px-7 rounded-2xl font-bold text-sm sm:text-base border border-gray-200 bg-white/90 hover:bg-white text-gray-800 shadow-sm hover:border-gray-300 active:scale-[0.98] transition-all"
                 onClick={() => setLocation("/auth/role")}
               >
                 {t.landing.hero.becomeProvider}
               </Button>
             </div>
 
-            <ul className="mt-9 flex flex-wrap gap-x-6 gap-y-3 justify-center lg:justify-start">
+            <div className="mt-10 pt-2 flex flex-wrap gap-5 sm:gap-7 justify-center lg:justify-start items-center">
               {trust.map(({ icon: Icon, label }) => (
-                <li key={label} className="flex items-center gap-2 text-sm font-semibold text-gray-600">
-                  <Icon className="w-[18px] h-[18px] text-blue-500" />
-                  {label}
-                </li>
+                <div key={label} className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50/90 border border-blue-100 flex items-center justify-center text-blue-600 shadow-xs shrink-0">
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <span className="text-xs sm:text-sm font-semibold text-gray-700 leading-snug max-w-[130px] text-left">
+                    {label}
+                  </span>
+                </div>
               ))}
-            </ul>
+            </div>
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, scale: 0.94 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.9, ease: EASE, delay: 0.1 }}
-            className="relative mx-auto w-full max-w-md lg:max-w-none"
+            initial={{ opacity: 0, x: 20, scale: 0.96 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            transition={{ duration: 0.9, ease: EASE, delay: 0.15 }}
+            className="relative flex items-center justify-center lg:justify-end"
           >
-            <div className="relative flex justify-center">
-              <PhoneFrame
-                src="/showcase/survey-category.jpg"
-                alt={t.landing.hero.categoriesAlt}
-                className="w-[230px] sm:w-[260px] rotate-[-3deg]"
-              />
-              <motion.div
-                initial={{ opacity: 0, y: 24 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, ease: EASE, delay: 0.35 }}
-                className="absolute -bottom-6 -right-2 sm:right-0 w-[225px] sm:w-[260px]"
-              >
-                <CardFrame
-                  src="/showcase/survey-question.jpg"
-                  alt={t.landing.hero.surveyAlt}
-                  className="rotate-[4deg]"
-                />
-              </motion.div>
-            </div>
+            <img
+              src="/images/hero.png"
+              alt={t.landing.hero.surveyAlt}
+              className="w-full max-w-[480px] sm:max-w-[560px] lg:max-w-[620px] xl:max-w-[680px] h-auto object-contain select-none pointer-events-none drop-shadow-xl"
+              loading="eager"
+            />
           </motion.div>
         </div>
       </div>

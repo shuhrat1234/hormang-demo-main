@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { Menu, X, LogOut, User, Globe, Check } from "lucide-react";
+import { Menu, X, LogOut, User, Globe, Check, ArrowRight } from "lucide-react";
 import { Button } from "./ui/button";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "./ui/dropdown-menu";
 import { motion, AnimatePresence } from "framer-motion";
@@ -169,10 +169,11 @@ export function Navbar() {
                   </motion.div>
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.38 }}>
                     <Button
-                      className="font-semibold bg-blue-500 hover:bg-blue-700 hover:brightness-105 active:scale-[0.98] shadow-sm transition-all"
+                      className="font-semibold bg-blue-600 hover:bg-blue-700 hover:brightness-105 active:scale-[0.98] shadow-sm transition-all gap-1.5"
                       onClick={() => setLocation("/auth/role")}
                     >
                       {t.navbar.signup}
+                      <ArrowRight className="w-3.5 h-3.5" />
                     </Button>
                   </motion.div>
                 </>
