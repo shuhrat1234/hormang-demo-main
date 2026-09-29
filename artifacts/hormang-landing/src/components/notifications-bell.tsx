@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Bell, Sparkles, X, ChevronRight } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Bell, Sparkles, X, ChevronRight, Eye, Send } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/auth-context";
@@ -13,6 +13,17 @@ import {
   type Announcement,
 } from "@/lib/announcements-store";
 import { getLocalizedText } from "@/lib/localization";
+import {
+  getUnseenRequests,
+  markSeen,
+  markAllSeen,
+  type ProviderRequest,
+} from "@/lib/provider-store";
+import { getLocalProfile } from "@/lib/local-profile";
+import { CategoryIcon } from "@/components/category-icon";
+import { getCategoryDisplayName } from "@/lib/categories";
+import { getRequestLocation } from "@/lib/regions";
+import { getBudgetLabel } from "@/lib/i18n";
 
 interface NotificationsBellProps {
   audience: "customers" | "providers";
@@ -23,9 +34,9 @@ export function NotificationsBell({
   audience,
   accentColor = "hsl(221,78%,50%)",
 }: NotificationsBellProps) {
-  useStoreRefresh();
-  const { user } = useAuth();
-  const { locale } = useI18n();
+  const refreshVersion = useStoreRefresh();
+  const { user, providerProfile } = useAuth();
+  const { t, locale } = useI18n();
   const [prefs] = useSettingsPrefs();
   const [, setLocation] = useLocation();
   const [isOpen, setIsOpen] = useState(false);
@@ -33,7 +44,26 @@ export function NotificationsBell({
 
   const items = getPublishedAnnouncements(audience);
   const seenIds = user?.id ? getSeenAnnouncementIds(user.id) : [];
-  const unseenCount = items.filter((a) => !seenIds.includes(a.id)).length;
+  const unseenAnnouncementsCount = items.filter((a) => !seenIds.includes(a.id)).length;
+
+  const [unseenRequests, setUnseenRequests] = useState<ProviderRequest[]>([]);
+  useEffect(() => {
+    if (audience !== "providers" || !user?.id) {
+      setUnseenRequests([]);
+      return;
+    }
+    let cancelled = false;
+    const prof = getLocalProfile(user.id);
+    const cats = providerProfile?.categories ?? [];
+    getUnseenRequests(cats, prof.serviceAreas ?? [], user.id, prof.serviceAreaV2)
+      .then((reqs) => {
+        if (!cancelled) setUnseenRequests(reqs);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [audience, user?.id, providerProfile?.categories, refreshVersion]);
+
+  const totalUnseenCount = unseenAnnouncementsCount + unseenRequests.length;
 
   // If user disabled app notifications in Settings, don't show the bell or badge
   if (!prefs.notifApp) {
@@ -52,6 +82,10 @@ export function NotificationsBell({
       for (const item of items) {
         markAnnouncementSeen(user.id, item.id);
       }
+      if (unseenRequests.length > 0) {
+        unseenRequests.forEach((r) => markSeen(r.id, user.id));
+        setUnseenRequests([]);
+      }
     }
   }
 
@@ -64,9 +98,9 @@ export function NotificationsBell({
         title={locale === "ru" ? "Уведомления" : locale === "en" ? "Notifications" : "Bildirishnomalar"}
       >
         <Bell className="w-5 h-5" />
-        {unseenCount > 0 && (
+        {totalUnseenCount > 0 && (
           <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center shadow-sm animate-pulse">
-            {unseenCount > 9 ? "9+" : unseenCount}
+            {totalUnseenCount > 9 ? "9+" : totalUnseenCount}
           </span>
         )}
       </button>
@@ -101,13 +135,13 @@ export function NotificationsBell({
                       {locale === "ru" ? "Уведомления" : locale === "en" ? "Notifications" : "Bildirishnomalar"}
                     </h3>
                     <p className="text-[10px] text-gray-400">
-                      {items.length}{" "}
+                      {items.length + unseenRequests.length}{" "}
                       {locale === "ru" ? "событий" : locale === "en" ? "events" : "ta xabarlar"}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {unseenCount > 0 && (
+                  {totalUnseenCount > 0 && (
                     <button
                       onClick={handleMarkAllSeen}
                       className="text-[11px] font-bold text-blue-600 hover:underline px-1.5 py-1"
@@ -126,7 +160,75 @@ export function NotificationsBell({
 
               {/* Body */}
               <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
-                {items.length === 0 ? (
+                {/* New requests for providers */}
+                {audience === "providers" && unseenRequests.length > 0 && (
+                  <div className="space-y-2 mb-4">
+                    <div className="flex items-center justify-between px-1">
+                      <span className="text-xs font-bold text-gray-700">
+                        {locale === "ru" ? "Новые заявки" : locale === "en" ? "New requests" : "Yangi so'rovlar"}
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-200">
+                        {unseenRequests.length}
+                      </span>
+                    </div>
+
+                    {unseenRequests.map((req) => (
+                      <div
+                        key={req.id}
+                        className="bg-white rounded-2xl p-3 border border-gray-200 shadow-2xs hover:border-gray-300 transition-all space-y-2.5"
+                      >
+                        <div className="flex items-start gap-2.5">
+                          <CategoryIcon categoryId={req.categoryId} emoji={req.emoji} size={36} shape="square" className="flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-1">
+                              <p className="font-bold text-gray-900 text-xs truncate">
+                                {getCategoryDisplayName(req.categoryId, locale, req.categoryName)}
+                              </p>
+                              <span className="text-[10px] text-gray-400 flex-shrink-0">
+                                {req.createdAt ? new Date(req.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ""}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-gray-500 truncate mt-0.5">
+                              {req.customerName} · {getRequestLocation(req, locale)}
+                            </p>
+                            <p className="text-[11px] font-bold text-violet-600 mt-1">
+                              {getBudgetLabel(req.budget != null ? String(req.budget) : undefined, t)}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* CTA buttons */}
+                        <div className="flex items-center gap-2 pt-1 border-t border-gray-100">
+                          <button
+                            onClick={() => {
+                              if (user?.id) markSeen(req.id, user.id);
+                              setIsOpen(false);
+                              setLocation(`/provider/requests?requestId=${req.id}&view=slider`);
+                            }}
+                            className="flex-1 py-1.5 px-2.5 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 font-bold text-[11px] flex items-center justify-center gap-1 transition-all active:scale-95"
+                          >
+                            <Eye className="w-3.5 h-3.5 text-gray-400" />
+                            {locale === "ru" ? "Подробнее" : locale === "en" ? "Details" : "Batafsil"}
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (user?.id) markSeen(req.id, user.id);
+                              setIsOpen(false);
+                              setLocation(`/provider/requests?requestId=${req.id}`);
+                            }}
+                            className="flex-1 py-1.5 px-2.5 rounded-xl text-white font-bold text-[11px] flex items-center justify-center gap-1 shadow-2xs transition-all active:scale-95"
+                            style={{ background: accentColor }}
+                          >
+                            <Send className="w-3.5 h-3.5" />
+                            {locale === "ru" ? "Отправить предложение" : locale === "en" ? "Send offer" : "Taklif yuborish"}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {items.length === 0 && unseenRequests.length === 0 ? (
                   <div className="text-center py-16">
                     <Bell className="w-10 h-10 text-gray-200 mx-auto mb-2.5" />
                     <p className="font-bold text-gray-400 text-sm">

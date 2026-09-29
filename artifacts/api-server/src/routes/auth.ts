@@ -297,11 +297,12 @@ router.post("/register", async (req, res) => {
 // ─── POST /register/provider-profile ────────────────────────────────────────
 router.post("/register/provider-profile", requireAuth, async (req: AuthRequest, res) => {
   try {
-    const { categories, bio, workingHours, preferredLocation } = req.body as {
+    const { categories, bio, workingHours, preferredLocation, photoUrl } = req.body as {
       categories: string[];
       bio?: string;
       workingHours?: string;
       preferredLocation?: string;
+      photoUrl?: string;
     };
 
     if (!categories?.length) {
@@ -318,7 +319,14 @@ router.post("/register/provider-profile", requireAuth, async (req: AuthRequest, 
     if (existing.length > 0) {
       const [profile] = await db
         .update(providerProfilesTable)
-        .set({ categories, bio, workingHours, preferredLocation, updatedAt: new Date() })
+        .set({
+          categories,
+          bio,
+          workingHours,
+          preferredLocation,
+          ...(photoUrl ? { photoUrl } : {}),
+          updatedAt: new Date(),
+        })
         .where(eq(providerProfilesTable.userId, req.user!.id))
         .returning();
       await db
@@ -331,7 +339,14 @@ router.post("/register/provider-profile", requireAuth, async (req: AuthRequest, 
 
     const [profile] = await db
       .insert(providerProfilesTable)
-      .values({ userId: req.user!.id, categories, bio, workingHours, preferredLocation })
+      .values({
+        userId: req.user!.id,
+        categories,
+        bio,
+        workingHours,
+        preferredLocation,
+        photoUrl: photoUrl || null,
+      })
       .returning();
 
     await db

@@ -20,15 +20,17 @@ import {
 import { useAuth } from "@/contexts/auth-context";
 import { OfferDetailModal } from "@/components/offer-detail-modal";
 import { AcceptConfirmModal } from "@/components/accept-confirm-modal";
-import { getLocalProfile } from "@/lib/local-profile";
+import { getAvgResponseMinutes, formatAvgResponseTime } from "@/lib/response-time-store";
+import { getLocalProfile, seedProfilePhoto } from "@/lib/local-profile";
+import { getProviderPublicProfile } from "@/lib/auth-client";
 import logoImg from "/hormang-logo.png";
 import { formatDate as uzDate } from "@/lib/date-utils";
 import { useI18n } from "@/contexts/i18n-context";
 import { tFormat } from "@/lib/i18n";
 import { getCategoryDisplayName } from "@/lib/categories";
 import { CategoryIcon } from "@/components/category-icon";
-import { getAvgResponseMinutes, formatAvgResponseTime } from "@/lib/response-time-store";
 import { useStoreRefresh } from "@/hooks/use-store-refresh";
+import { translateSystemMessage } from "@/lib/system-messages";
 
 /* ─── Tab type ───────────────────────────────────────────────────── */
 type Tab = "offers" | "chats";
@@ -63,7 +65,21 @@ function OfferCard({ offer, req, index, anyAccepted, onChanged }: {
   const isRejected  = offer.status === "rejected";
   const isCompleted = offer.status === "completed";
   const providerLocal = getLocalProfile(offer.masterId);
-  const providerPhoto = offer.masterPhotoUrl || providerLocal.photoUrl;
+  const [directPhoto, setDirectPhoto] = useState<string | undefined>(offer.masterPhotoUrl || providerLocal.photoUrl);
+  const [imgError, setImgError] = useState(false);
+
+  useEffect(() => {
+    if (!directPhoto && offer.masterId) {
+      getProviderPublicProfile(offer.masterId).then(({ providerProfile }) => {
+        if (providerProfile?.photoUrl) {
+          setDirectPhoto(providerProfile.photoUrl);
+          seedProfilePhoto(offer.masterId, providerProfile.photoUrl);
+        }
+      }).catch(() => {});
+    }
+  }, [offer.masterId, directPhoto]);
+
+  const providerPhoto = directPhoto || offer.masterPhotoUrl || providerLocal.photoUrl;
 
   function handleAcceptClick(e: React.MouseEvent) {
     e.stopPropagation();
@@ -111,14 +127,12 @@ function OfferCard({ offer, req, index, anyAccepted, onChanged }: {
         <div className="p-4">
           {/* Provider row */}
           <div className="flex items-start gap-3 mb-3">
-            {providerPhoto ? (
+            {providerPhoto && !imgError ? (
               <img
                 src={providerPhoto}
                 alt={offer.masterName}
                 className="w-11 h-11 rounded-2xl object-cover border border-gray-200 flex-shrink-0 shadow-sm"
-                onError={(e) => {
-                  (e.currentTarget as HTMLElement).style.display = "none";
-                }}
+                onError={() => setImgError(true)}
               />
             ) : (
               <div
@@ -275,11 +289,27 @@ function OfferCard({ offer, req, index, anyAccepted, onChanged }: {
 
 /* ─── Chat Row ───────────────────────────────────────────────────── */
 function ChatRow({ chat, offer, req, index }: { chat: Chat; offer: Offer | undefined; req: CustomerRequest | undefined; index: number }) {
+  useStoreRefresh();
   const { t, locale } = useI18n();
   const tt = t.chatOffersPage;
   const [, setLocation] = useLocation();
   const lastMsg = chat.messages[chat.messages.length - 1];
   const providerLocal = getLocalProfile(chat.masterId);
+  const [directPhoto, setDirectPhoto] = useState<string | undefined>(offer?.masterPhotoUrl || providerLocal.photoUrl);
+  const [imgError, setImgError] = useState(false);
+
+  useEffect(() => {
+    if (!directPhoto && chat.masterId) {
+      getProviderPublicProfile(chat.masterId).then(({ providerProfile }) => {
+        if (providerProfile?.photoUrl) {
+          setDirectPhoto(providerProfile.photoUrl);
+          seedProfilePhoto(chat.masterId, providerProfile.photoUrl);
+        }
+      }).catch(() => {});
+    }
+  }, [chat.masterId, directPhoto]);
+
+  const providerPhoto = directPhoto || offer?.masterPhotoUrl || providerLocal.photoUrl;
   const st = offer?.status ?? "pending";
   const unread = chat.customerUnread ?? 0;
 
@@ -315,11 +345,12 @@ function ChatRow({ chat, offer, req, index }: { chat: Chat; offer: Offer | undef
       onClick={() => setLocation(`/chat/${chat.id}`)}
       className={`w-full bg-white rounded-2xl border p-4 flex items-start gap-3 hover:shadow-sm transition-all duration-200 text-left ${borderCls}`}
     >
-      {providerLocal.photoUrl ? (
+      {providerPhoto && !imgError ? (
         <img
-          src={providerLocal.photoUrl}
+          src={providerPhoto}
           alt={chat.masterName}
           className="w-11 h-11 rounded-2xl object-cover border border-gray-200 flex-shrink-0 shadow-sm"
+          onError={() => setImgError(true)}
         />
       ) : (
         <div
@@ -353,24 +384,7 @@ function ChatRow({ chat, offer, req, index }: { chat: Chat; offer: Offer | undef
         {lastMsg && (
           <p className="text-[11px] text-gray-400 truncate mt-0.5">
             {lastMsg.sender === "system"
-              ? (() => {
-                  const sysMsgs = t.chatPage;
-                  const map: Record<string, string> = {
-                    "Taklif qabul qilindi — Suhbat davom etmoqda": sysMsgs.systemMsgOfferAccepted,
-                    "Taklif rad etildi. Suhbat yopildi.": sysMsgs.systemMsgOfferRejected,
-                    "Mijoz boshqa ijrochi taklifini qabul qildi": sysMsgs.systemMsgOfferSiblingClosed,
-                    "⏳ Ijrochi xizmat yakunlanganligini tasdiqladi. Mijoz tasdig'i kutilmoqda.": sysMsgs.systemMsgProviderConfirmed,
-                    "⏳ Mijoz xizmat yakunlanganligini tasdiqladi. Ijrochi tasdig'i kutilmoqda.": sysMsgs.systemMsgCustomerConfirmed,
-                    "✅ Xizmat yakunlandi! Hamkorlik uchun rahmat.": sysMsgs.systemMsgCompleted,
-                    "Предложение принято — чат продолжается": sysMsgs.systemMsgOfferAccepted,
-                    "Предложение отклонено. Чат закрыт.": sysMsgs.systemMsgOfferRejected,
-                    "Клиент принял предложение другого исполнителя": sysMsgs.systemMsgOfferSiblingClosed,
-                    "⏳ Исполнитель подтвердил завершение. Ожидается подтверждение клиента.": sysMsgs.systemMsgProviderConfirmed,
-                    "⏳ Клиент подтвердил завершение. Ожидается подтверждение исполнителя.": sysMsgs.systemMsgCustomerConfirmed,
-                    "✅ Услуга завершена! Спасибо за сотрудничество.": sysMsgs.systemMsgCompleted,
-                  };
-                  return map[lastMsg.text] ?? lastMsg.text;
-                })()
+              ? translateSystemMessage(lastMsg.text, t.chatPage)
               : (lastMsg.sender === "customer" ? tt.youPrefix : "") + lastMsg.text}
           </p>
         )}

@@ -391,6 +391,7 @@ export async function submitOffer(body: {
   requestId: string; price: number; priceLabel?: string; message: string;
   fileUrls?: string[]; costTanga: number;
   masterName?: string; masterInitials?: string; masterColor?: string;
+  masterPhotoUrl?: string;
 }): Promise<Offer> {
   const { offer } = await api.submitOffer(body);
   return toOffer(offer);

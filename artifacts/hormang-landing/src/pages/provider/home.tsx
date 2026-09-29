@@ -1275,11 +1275,6 @@ export default function ProviderHomePage() {
           <span className="text-[11px] font-bold px-2.5 py-1 rounded-full text-white" style={{ background: VIOLET }}>
             {t.providerHome.roleBadge}
           </span>
-          {unseenCount > 0 && (
-            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-red-500 text-white">
-              {tFormat(t.providerHome.newCountTpl, { n: unseenCount })}
-            </span>
-          )}
           <TangaChip userId={user?.id ?? ""} onClick={() => setLocation("/plans")} />
           <NotificationsBell audience="providers" accentColor={VIOLET} />
           <button

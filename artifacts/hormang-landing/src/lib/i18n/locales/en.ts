@@ -755,7 +755,7 @@ export const en: Dict = {
     terms: "Terms of use",
   },
   landing: {
-    rotateWords: ["a plumber", "a cleaner", "a nanny", "a tutor", "a handyman"],
+    rotateWords: ["plumber", "cleaner", "nanny", "tutor", "handyman"],
     hero: {
       badge: "Find the right provider through a short survey",
       headlineLine1: "Find the right",
@@ -1541,6 +1541,7 @@ export const en: Dict = {
     systemMsgProviderConfirmed: "⏳ Provider confirmed completion. Awaiting customer confirmation.",
     systemMsgCustomerConfirmed: "⏳ Customer confirmed completion. Awaiting provider confirmation.",
     systemMsgCompleted: "✅ Service completed! Thank you for your cooperation.",
+    systemMsgAdminCompleted: "Completed by administrator",
     deleteForEveryone: "Delete for everyone",
     deleteForMe: "Delete for me",
     messageDeleted: "Message deleted",

@@ -33,6 +33,19 @@ function toJson(row: OfferRow, masterPhotoUrl?: string | null) {
   };
 }
 
+async function getOfferWithPhoto(offerId: string) {
+  const [row] = await db
+    .select({
+      offer: offersTable,
+      masterPhotoUrl: providerProfilesTable.photoUrl,
+    })
+    .from(offersTable)
+    .leftJoin(providerProfilesTable, eq(providerProfilesTable.userId, offersTable.masterId))
+    .where(eq(offersTable.id, offerId))
+    .limit(1);
+  return row ? toJson(row.offer, row.masterPhotoUrl) : null;
+}
+
 type SubmitReason = "no_request" | "request_closed" | "matched" | "active_limit" | "lifetime_limit" | "already_offered" | "self_request";
 
 async function canSubmitOffer(requestId: string, providerId: string): Promise<{ ok: boolean; reason?: SubmitReason; request?: RequestRow }> {
@@ -145,6 +158,7 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
       requestId?: string; price?: number; priceLabel?: string; message?: string;
       fileUrls?: string[]; costTanga?: number;
       masterName?: string; masterInitials?: string; masterColor?: string;
+      masterPhotoUrl?: string;
     };
     if (!body.requestId || !body.price || !body.message?.trim() || !body.costTanga) {
       res.status(400).json({ error: "requestId, price, message, costTanga talab qilinadi" });
@@ -215,13 +229,31 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
       res.status(400).json({ error: "insufficient_balance" });
       return;
     }
-    const [profile] = await db
-      .select({ photoUrl: providerProfilesTable.photoUrl })
-      .from(providerProfilesTable)
-      .where(eq(providerProfilesTable.userId, masterId))
-      .limit(1);
 
-    res.status(201).json({ offer: toJson(createdOffer!, profile?.photoUrl) });
+    if (body.masterPhotoUrl) {
+      const [existingProf] = await db
+        .select({ id: providerProfilesTable.id, photoUrl: providerProfilesTable.photoUrl })
+        .from(providerProfilesTable)
+        .where(eq(providerProfilesTable.userId, masterId))
+        .limit(1);
+      if (existingProf) {
+        if (!existingProf.photoUrl) {
+          await db
+            .update(providerProfilesTable)
+            .set({ photoUrl: body.masterPhotoUrl, updatedAt: new Date() })
+            .where(eq(providerProfilesTable.userId, masterId));
+        }
+      } else {
+        await db.insert(providerProfilesTable).values({
+          userId: masterId,
+          photoUrl: body.masterPhotoUrl,
+          categories: [check.request!.categoryId],
+        }).onConflictDoNothing();
+      }
+    }
+
+    const created = await getOfferWithPhoto(createdOffer!.id);
+    res.status(201).json({ offer: created });
   } catch (err) {
     console.error("Create offer error:", err);
     res.status(500).json({ error: "Xatolik yuz berdi" });
@@ -289,8 +321,8 @@ router.patch("/:id/status", requireAuth, async (req: AuthRequest, res) => {
       }
     });
 
-    const [updated] = await db.select().from(offersTable).where(eq(offersTable.id, id)).limit(1);
-    res.json({ offer: toJson(updated) });
+    const updated = await getOfferWithPhoto(id);
+    res.json({ offer: updated });
   } catch (err) {
     console.error("Update offer status error:", err);
     res.status(500).json({ error: "Xatolik yuz berdi" });
@@ -327,8 +359,9 @@ router.patch("/:id/reopen", requireAuth, async (req: AuthRequest, res) => {
       res.status(400).json({ error: "already_accepted" });
       return;
     }
-    const [row] = await db.update(offersTable).set({ status: "pending" }).where(eq(offersTable.id, id)).returning();
-    res.json({ offer: toJson(row) });
+    await db.update(offersTable).set({ status: "pending" }).where(eq(offersTable.id, id));
+    const updated = await getOfferWithPhoto(id);
+    res.json({ offer: updated });
   } catch (err) {
     console.error("Reopen offer error:", err);
     res.status(500).json({ error: "Xatolik yuz berdi" });
@@ -344,8 +377,9 @@ router.patch("/:id/in-progress", requireAuth, async (req: AuthRequest, res) => {
       res.status(404).json({ error: "Taklif topilmadi" });
       return;
     }
-    const [row] = await db.update(offersTable).set({ status: "in_progress" }).where(eq(offersTable.id, id)).returning();
-    res.json({ offer: toJson(row) });
+    await db.update(offersTable).set({ status: "in_progress" }).where(eq(offersTable.id, id));
+    const updated = await getOfferWithPhoto(id);
+    res.json({ offer: updated });
   } catch (err) {
     console.error("Mark offer in-progress error:", err);
     res.status(500).json({ error: "Xatolik yuz berdi" });
@@ -381,7 +415,7 @@ router.patch("/:id/confirm-completion", requireAuth, async (req: AuthRequest, re
     const customerConfirmedCompleted = role === "customer" ? true : offer.customerConfirmedCompleted;
     const bothConfirmed = providerConfirmedCompleted && customerConfirmedCompleted;
 
-    const [row] = await db
+    await db
       .update(offersTable)
       .set({
         providerConfirmedCompleted,
@@ -392,8 +426,7 @@ router.patch("/:id/confirm-completion", requireAuth, async (req: AuthRequest, re
         ...(completion?.completionNotes !== undefined ? { completionNotes: completion.completionNotes } : {}),
         ...(completion?.durationMinutes !== undefined ? { completionDurationMinutes: completion.durationMinutes } : {}),
       })
-      .where(eq(offersTable.id, id))
-      .returning();
+      .where(eq(offersTable.id, id));
 
     if (!bothConfirmed) {
       const [chat] = await db.select().from(chatsTable).where(and(eq(chatsTable.requestId, offer.requestId), eq(chatsTable.masterId, offer.masterId))).limit(1);
@@ -415,7 +448,8 @@ router.patch("/:id/confirm-completion", requireAuth, async (req: AuthRequest, re
       }
     }
 
-    res.json({ offer: toJson(row) });
+    const updated = await getOfferWithPhoto(id);
+    res.json({ offer: updated });
   } catch (err) {
     console.error("Confirm offer completion error:", err);
     res.status(500).json({ error: "Xatolik yuz berdi" });
@@ -617,12 +651,12 @@ router.patch("/:id/after-photos", requireAuth, async (req: AuthRequest, res) => 
       res.status(404).json({ error: "Taklif topilmadi" });
       return;
     }
-    const [row] = await db
+    await db
       .update(offersTable)
       .set({ completionAfterPhotos: afterPhotos.slice(0, MAX_AFTER_PHOTOS) })
-      .where(eq(offersTable.id, id))
-      .returning();
-    res.json({ offer: toJson(row) });
+      .where(eq(offersTable.id, id));
+    const updated = await getOfferWithPhoto(id);
+    res.json({ offer: updated });
   } catch (err) {
     console.error("Set after-photos error:", err);
     res.status(500).json({ error: "Xatolik yuz berdi" });
@@ -655,7 +689,7 @@ router.patch("/:id/portfolio", requireAuth, async (req: AuthRequest, res) => {
       if (count >= MAX_FEATURED_PROJECTS) resolvedFeatured = false;
     }
 
-    const [row] = await db
+    await db
       .update(offersTable)
       .set({
         portfolioTitle: title.trim(),
@@ -664,9 +698,9 @@ router.patch("/:id/portfolio", requireAuth, async (req: AuthRequest, res) => {
         portfolioAdditionalPhotos: additionalPhotos?.length ? additionalPhotos : null,
         portfolioFeatured: resolvedFeatured,
       })
-      .where(eq(offersTable.id, id))
-      .returning();
-    res.json({ offer: toJson(row) });
+      .where(eq(offersTable.id, id));
+    const updated = await getOfferWithPhoto(id);
+    res.json({ offer: updated });
   } catch (err) {
     console.error("Save portfolio project error:", err);
     res.status(500).json({ error: "Xatolik yuz berdi" });
@@ -682,12 +716,12 @@ router.delete("/:id/portfolio", requireAuth, async (req: AuthRequest, res) => {
       res.status(404).json({ error: "Taklif topilmadi" });
       return;
     }
-    const [row] = await db
+    await db
       .update(offersTable)
       .set({ portfolioTitle: null, portfolioDescription: null, portfolioCoverPhoto: null, portfolioAdditionalPhotos: null, portfolioFeatured: false })
-      .where(eq(offersTable.id, id))
-      .returning();
-    res.json({ offer: toJson(row) });
+      .where(eq(offersTable.id, id));
+    const updated = await getOfferWithPhoto(id);
+    res.json({ offer: updated });
   } catch (err) {
     console.error("Remove portfolio project error:", err);
     res.status(500).json({ error: "Xatolik yuz berdi" });
@@ -747,8 +781,8 @@ router.post("/admin/:id/force-complete", requireAdminKey, async (req, res) => {
     if (chat) {
       await db.insert(chatMessagesTable).values({ chatId: chat.id, sender: "system", text: "Admin tomonidan yakunlandi" });
     }
-    const [row] = await db.select().from(offersTable).where(eq(offersTable.id, id)).limit(1);
-    res.json({ offer: toJson(row) });
+    const updated = await getOfferWithPhoto(id);
+    res.json({ offer: updated });
   } catch (err) {
     console.error("Admin force-complete offer error:", err);
     res.status(500).json({ error: "Xatolik yuz berdi" });
@@ -764,12 +798,14 @@ router.patch("/admin/:id/status", requireAdminKey, async (req, res) => {
       res.status(400).json({ error: "status talab qilinadi" });
       return;
     }
-    const [row] = await db.update(offersTable).set({ status }).where(eq(offersTable.id, id)).returning();
-    if (!row) {
+    const [offer] = await db.select().from(offersTable).where(eq(offersTable.id, id)).limit(1);
+    if (!offer) {
       res.status(404).json({ error: "Taklif topilmadi" });
       return;
     }
-    res.json({ offer: toJson(row) });
+    await db.update(offersTable).set({ status }).where(eq(offersTable.id, id));
+    const updated = await getOfferWithPhoto(id);
+    res.json({ offer: updated });
   } catch (err) {
     console.error("Admin update offer status error:", err);
     res.status(500).json({ error: "Xatolik yuz berdi" });

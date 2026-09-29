@@ -5,6 +5,7 @@ import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import {
   ChevronLeft, ChevronRight, Send, Inbox, MapPin, Filter, X, Check, CheckCircle2,
   Eye, Clock, DollarSign, FileText, AlertOctagon, User, Search, SlidersHorizontal,
+  Loader2, Flag,
 } from "lucide-react";
 import { BottomNav } from "@/components/bottom-nav";
 import { OfferForm } from "@/components/offer-form";
@@ -565,6 +566,7 @@ function RespondedRow({ r, index: i, providerId, onOpenDetail }: {
   providerId: string;
   onOpenDetail: (request: ProviderRequest, offer: Offer) => void;
 }) {
+  useStoreRefresh();
   const { t, locale } = useI18n();
   const [offer, setOffer] = useState<Offer | undefined>(undefined);
   useEffect(() => {
@@ -576,13 +578,19 @@ function RespondedRow({ r, index: i, providerId, onOpenDetail }: {
   const st = offer?.status ?? "pending";
   const badge =
     st === "accepted"
-      ? { label: t.providerRequests.responded.accepted, cls: "text-emerald-600 bg-emerald-50 border-emerald-200", icon: <CheckCircle2 className="w-3 h-3" /> }
-      : st === "rejected"
-      ? { label: t.providerRequests.responded.rejected, cls: "text-red-500 bg-red-50 border-red-200", icon: <X className="w-3 h-3" /> }
+      ? { label: t.providerChats.badges.accepted, cls: "text-emerald-600 bg-emerald-50 border-emerald-200", icon: <CheckCircle2 className="w-3 h-3" /> }
+      : st === "rejected" || st === "Yopilgan"
+      ? { label: t.providerChats.badges.rejected, cls: "text-red-500 bg-red-50 border-red-200", icon: <X className="w-3 h-3" /> }
+      : st === "in_progress"
+      ? { label: t.providerChats.badges.inProgress, cls: "text-blue-600 bg-blue-50 border-blue-200", icon: <Loader2 className="w-3 h-3 animate-spin" /> }
+      : st === "completed"
+      ? { label: t.providerChats.badges.completed, cls: "text-emerald-700 bg-emerald-100 border-emerald-300", icon: <Flag className="w-3 h-3" /> }
       : { label: t.providerRequests.responded.pending, cls: "text-amber-600 bg-amber-50 border-amber-200", icon: <Clock className="w-3 h-3" /> };
   const cardBorder =
     st === "accepted" ? "border-emerald-100 hover:border-emerald-200" :
-    st === "rejected" ? "border-red-100 hover:border-red-200" :
+    st === "rejected" || st === "Yopilgan" ? "border-red-100 hover:border-red-200" :
+    st === "in_progress" ? "border-blue-100 hover:border-blue-200" :
+    st === "completed" ? "border-emerald-100 hover:border-emerald-200" :
     "border-gray-100 hover:border-gray-200";
 
   return (
@@ -674,11 +682,20 @@ export default function ProviderRequestsPage() {
   useEffect(() => {
     const params = new URLSearchParams(location.split("?")[1] || "");
     const requestId = params.get("requestId");
+    const view = params.get("view");
     if (requestId && requestId !== processedRequestId.current && requests.length > 0) {
       processedRequestId.current = requestId;
       const req = requests.find((r) => r.id === requestId);
       if (req) {
-        setOfferRequest(req);
+        if (view === "slider") {
+          const openList = requests.filter((r) => r.status === "open");
+          const idx = openList.findIndex((r) => r.id === requestId);
+          setSliderRequests(openList);
+          setSliderStart(idx >= 0 ? idx : 0);
+          setShowSlider(true);
+        } else {
+          setOfferRequest(req);
+        }
       }
     }
   }, [location, requests]);

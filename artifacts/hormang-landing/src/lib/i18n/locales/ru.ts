@@ -1543,6 +1543,7 @@ export const ru: Dict = {
     systemMsgProviderConfirmed: "⏳ Исполнитель подтвердил завершение. Ожидается подтверждение клиента.",
     systemMsgCustomerConfirmed: "⏳ Клиент подтвердил завершение. Ожидается подтверждение исполнителя.",
     systemMsgCompleted: "✅ Услуга завершена! Спасибо за сотрудничество.",
+    systemMsgAdminCompleted: "Завершено администратором",
     deleteForEveryone: "Удалить для всех",
     deleteForMe: "Только для меня",
     messageDeleted: "Сообщение удалено",

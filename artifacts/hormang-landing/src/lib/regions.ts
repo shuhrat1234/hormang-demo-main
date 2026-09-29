@@ -42,10 +42,107 @@ export const DISTRICT_LABELS_RU: Record<string, string> = {
   "Yunusobod":      "Юнусабад",
 };
 
+/** English display names for Tashkent city districts */
+export const DISTRICT_LABELS_EN: Record<string, string> = {
+  "Bektemir":       "Bektemir",
+  "Chilonzor":      "Chilanzar",
+  "Mirobod":        "Mirabad",
+  "Mirzo Ulug'bek": "Mirzo Ulugbek",
+  "Olmazor":        "Almazar",
+  "Sergeli":        "Sergeli",
+  "Shayxontohur":   "Shaikhontohur",
+  "Uchtepa":        "Uchtepa",
+  "Yakkasaroy":     "Yakkasaray",
+  "Yangihayot":     "Yangihayot",
+  "Yashnobod":      "Yashnabad",
+  "Yunusobod":      "Yunusabad",
+};
+
+/** Normalizes any district name (UZ, RU, EN, case-insensitive) to canonical UZ key */
+function normalizeDistrictKey(name: string): string {
+  const clean = name.trim().toLowerCase();
+  for (const uzKey of TOSHKENT_DISTRICTS) {
+    if (uzKey.toLowerCase() === clean) return uzKey;
+    const ru = DISTRICT_LABELS_RU[uzKey]?.toLowerCase();
+    if (ru && ru === clean) return uzKey;
+    const en = DISTRICT_LABELS_EN[uzKey]?.toLowerCase();
+    if (en && en === clean) return uzKey;
+  }
+  return name.trim();
+}
+
 /** Get a district's display label in the given locale */
 export function getDistrictLabel(name: string, locale: string): string {
-  if (locale === "ru") return DISTRICT_LABELS_RU[name] ?? name;
-  return name;
+  if (!name) return "";
+  const canonical = normalizeDistrictKey(name);
+  if (locale === "ru") return DISTRICT_LABELS_RU[canonical] ?? canonical;
+  if (locale === "en") return DISTRICT_LABELS_EN[canonical] ?? canonical;
+  return canonical;
+}
+
+/** Normalizes any region name (UZ, RU, EN, case-insensitive) to canonical UZ value */
+function normalizeRegionKey(name: string): string {
+  const clean = name.trim().toLowerCase().replace(/^г\.\s*/i, "").replace(/\s*шахри$/i, "").replace(/\s*shahri$/i, "").replace(/\s*city$/i, "");
+  if (clean === "toshkent" || clean === "ташкент" || clean === "tashkent") {
+    return "Toshkent shahri";
+  }
+  for (const r of regionsList) {
+    if (r.value.toLowerCase() === clean || r.label.toLowerCase() === clean) return r.value;
+    if (r.labelRu && r.labelRu.toLowerCase() === clean) return r.value;
+  }
+  return name.trim();
+}
+
+/** Get a region's display label in the given locale */
+export function getRegionLabel(value: string, locale: string): string {
+  if (!value) return "";
+  const canonical = normalizeRegionKey(value);
+  const regionObj = regionsList.find((x) => x.value === canonical);
+  if (locale === "ru") {
+    if (canonical === "Toshkent shahri") return "г. Ташкент";
+    return regionObj?.labelRu ?? regionObj?.label ?? canonical;
+  }
+  if (locale === "en") {
+    if (canonical === "Toshkent shahri") return "Tashkent city";
+    return regionObj?.label ?? canonical;
+  }
+  return regionObj?.label ?? canonical;
+}
+
+/**
+ * Universal location formatter & translator:
+ * Handles district + region or a single compound string like "Chilonzor, Toshkent shahri"
+ * and returns the localized representation for the viewer's active locale.
+ */
+export function localizeLocation(district?: string | null, region?: string | null, locale: string = "uz"): string {
+  const dist = district?.trim() || "";
+  const reg = region?.trim() || "";
+
+  if (dist && reg) {
+    const dLabel = getDistrictLabel(dist, locale);
+    const rLabel = getRegionLabel(reg, locale);
+    return `${dLabel}, ${rLabel}`;
+  }
+
+  const single = dist || reg;
+  if (!single) return "";
+
+  // If compound string like "Chilonzor, Toshkent shahri" or "Чиланзар, Ташкент"
+  if (single.includes(",")) {
+    const parts = single.split(",").map((s) => s.trim()).filter(Boolean);
+    if (parts.length >= 2) {
+      return localizeLocation(parts[0], parts[1], locale);
+    }
+  }
+
+  // Check if it's a known district
+  const distKey = normalizeDistrictKey(single);
+  if (TOSHKENT_DISTRICTS.includes(distKey)) {
+    return getDistrictLabel(distKey, locale);
+  }
+
+  // Otherwise treat as region
+  return getRegionLabel(single, locale);
 }
 
 /**
@@ -53,24 +150,10 @@ export function getDistrictLabel(name: string, locale: string): string {
  * Prefers district + region codes (translated) over the raw stored location string.
  */
 export function getRequestLocation(
-  r: { location: string; region?: string; district?: string },
+  r: { location?: string; region?: string; district?: string },
   locale: string,
 ): string {
-  if (r.district && r.region) {
-    return `${getDistrictLabel(r.district, locale)}, ${getRegionLabel(r.region, locale)}`;
-  }
-  if (r.district) return getDistrictLabel(r.district, locale);
-  if (r.region)   return getRegionLabel(r.region, locale);
-  return r.location;
-}
-
-/** Get a region's display label in the given locale */
-export function getRegionLabel(value: string, locale: string): string {
-  if (locale === "ru") {
-    const r = regionsList.find((x) => x.value === value);
-    return r?.labelRu ?? r?.label ?? value;
-  }
-  return regionsList.find((x) => x.value === value)?.label ?? value;
+  return localizeLocation(r.district, r.region, locale) || (r.location ? localizeLocation(undefined, r.location, locale) : "");
 }
 
 export const regionsList: Region[] = [

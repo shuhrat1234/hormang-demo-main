@@ -20,8 +20,8 @@ import {
 import { useStoreRefresh } from "@/hooks/use-store-refresh";
 import { getTransactionByOfferId } from "@/lib/tanga-history-store";
 import { getAllQuestionsForCategory, collectActiveQuestions } from "@/lib/questionnaire-store";
-import { formatDate as formatUzDate } from "@/lib/date-utils";
-import { getLocalProfile } from "@/lib/local-profile";
+import { getLocalProfile, seedProfilePhoto } from "@/lib/local-profile";
+import { getProviderPublicProfile } from "@/lib/auth-client";
 import { getAvgResponseMinutes, formatAvgResponseTime } from "@/lib/response-time-store";
 import { PublicProfilePreviewModal } from "@/components/public-profile-preview-modal";
 import { AcceptConfirmModal } from "@/components/accept-confirm-modal";
@@ -32,7 +32,8 @@ import { getCategoryDisplayName } from "@/lib/categories";
 import { CategoryIcon } from "@/components/category-icon";
 import { getLocalizedText } from "@/lib/localization";
 import type { Locale } from "@/lib/i18n";
-import { getDistrictLabel, getRegionLabel } from "@/lib/regions";
+import { getDistrictLabel, getRegionLabel, localizeLocation } from "@/lib/regions";
+import { formatDate as formatUzDate } from "@/lib/date-utils";
 
 /* ─── Constants ────────────────────────────────────────────────────── */
 
@@ -159,7 +160,21 @@ export function OfferDetailModal({ offer, onClose, onStatusChange, readOnly = fa
   const canAccept = !isAccepted && !isInProgress && !isRejected && !isCompleted && !anyAccepted;
 
   const providerLocal = getLocalProfile(offer.masterId);
-  const providerPhoto = offer.masterPhotoUrl || liveOffer.masterPhotoUrl || providerLocal.photoUrl;
+  const [directPhoto, setDirectPhoto] = useState<string | undefined>(offer.masterPhotoUrl || liveOffer.masterPhotoUrl || providerLocal.photoUrl);
+  const [imgError, setImgError] = useState(false);
+
+  useEffect(() => {
+    if (!directPhoto && offer.masterId) {
+      getProviderPublicProfile(offer.masterId).then(({ providerProfile }) => {
+        if (providerProfile?.photoUrl) {
+          setDirectPhoto(providerProfile.photoUrl);
+          seedProfilePhoto(offer.masterId, providerProfile.photoUrl);
+        }
+      }).catch(() => {});
+    }
+  }, [offer.masterId, directPhoto]);
+
+  const providerPhoto = directPhoto || offer.masterPhotoUrl || liveOffer.masterPhotoUrl || providerLocal.photoUrl;
 
   /* Build Q&A pairs from request (skip image answers)
      collectActiveQuestions traverses conditional branches so follow-up
@@ -198,10 +213,7 @@ export function OfferDetailModal({ offer, onClose, onStatusChange, readOnly = fa
   /* Derive request metadata */
   const urgency = req?.answers?.["urgency"] as string | undefined;
   const urg = urgencyLabel(urgency, tt.urgencyUrgent, tt.urgencyNormal, tt.urgencyFlexible);
-  const location = [
-    req?.district ? getDistrictLabel(req.district, locale) : "",
-    req?.region ? getRegionLabel(req.region, locale) : "",
-  ].filter(Boolean).join(", ");
+  const location = localizeLocation(req?.district, req?.region, locale);
   const budgetAnswer = req?.answers?.["budget"];
   const budgetLabel = typeof budgetAnswer === "number"
     ? budgetAnswer.toLocaleString("uz-Latn-UZ") + " " + tt.sumSuffix
@@ -280,14 +292,12 @@ export function OfferDetailModal({ offer, onClose, onStatusChange, readOnly = fa
               {/* Provider header */}
               <div className="px-4 pt-4 pb-3 border-b border-gray-100">
                 <div className="flex items-start gap-3">
-                  {providerPhoto ? (
+                  {providerPhoto && !imgError ? (
                     <img
                       src={providerPhoto}
                       alt={offer.masterName}
                       className="w-12 h-12 rounded-2xl object-cover border border-gray-200 flex-shrink-0 shadow-sm"
-                      onError={(e) => {
-                        (e.currentTarget as HTMLElement).style.display = "none";
-                      }}
+                      onError={() => setImgError(true)}
                     />
                   ) : (
                     <div

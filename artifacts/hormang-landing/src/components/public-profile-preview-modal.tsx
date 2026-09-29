@@ -7,14 +7,16 @@
  * Pure UI redesign — same data-fetching logic as PublicProfileModal.
  * Phone number is NEVER shown.
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X, MapPin, ShieldCheck, Star,
   Briefcase, Award, ChevronRight, Flag,
   IdCard, Ban, LockOpen,
 } from "lucide-react";
-import { getLocalProfile, getServiceAreaLabels, getLiveProviderName } from "@/lib/local-profile";
+import { getLocalProfile, getServiceAreaLabels, getLiveProviderName, seedProfilePhoto } from "@/lib/local-profile";
+import { getProviderPublicProfile } from "@/lib/auth-client";
+import { localizeLocation } from "@/lib/regions";
 import { getCategoryDisplayName } from "@/lib/categories";
 import { getAverageRatingForUser, getReviewsForUser, getCompletedCount } from "@/lib/completion-store";
 import { getAvgResponseMinutes, formatAvgResponseTime } from "@/lib/response-time-store";
@@ -161,7 +163,21 @@ function ProviderPreviewSheet({
   useStoreRefresh();
   const tt = t.publicProfilePreviewModal;
   const local = getLocalProfile(data.masterId);
-  const photoUrl = data.photoUrl || local.photoUrl;
+  const [directPhoto, setDirectPhoto] = useState<string | undefined>(data.photoUrl || local.photoUrl);
+  const [imgError, setImgError] = useState(false);
+
+  useEffect(() => {
+    if (!directPhoto && data.masterId) {
+      getProviderPublicProfile(data.masterId).then(({ providerProfile }) => {
+        if (providerProfile?.photoUrl) {
+          setDirectPhoto(providerProfile.photoUrl);
+          seedProfilePhoto(data.masterId, providerProfile.photoUrl);
+        }
+      }).catch(() => {});
+    }
+  }, [data.masterId, directPhoto]);
+
+  const photoUrl = directPhoto || data.photoUrl || local.photoUrl;
   // Prefer the provider's current name — whatever the caller passed in
   // `data.masterName` may be a snapshot frozen at offer/chat creation time.
   const liveMasterName = getLiveProviderName(data.masterId) ?? data.masterName;
@@ -265,7 +281,7 @@ function ProviderPreviewSheet({
             <div className="flex flex-col items-center text-center mb-4">
               {/* Avatar */}
               <div className="relative mb-2">
-                {photoUrl ? (
+                {photoUrl && !imgError ? (
                   <img
                     src={photoUrl}
                     alt={liveMasterName}
@@ -274,9 +290,7 @@ function ProviderPreviewSheet({
                       border: `3px solid ${VIOLET}`,
                       boxShadow: `0 0 0 6px hsl(262,80%,93%), 0 8px 28px rgba(139,92,246,0.22)`,
                     }}
-                    onError={(e) => {
-                      (e.currentTarget as HTMLElement).style.display = "none";
-                    }}
+                    onError={() => setImgError(true)}
                   />
                 ) : (
                   <div
@@ -418,7 +432,7 @@ function ProviderPreviewSheet({
                         key={area}
                         className="text-xs font-semibold text-gray-700 bg-gray-100 rounded-lg px-2.5 py-1"
                       >
-                        {area}
+                        {localizeLocation(undefined, area, locale)}
                       </span>
                     ))}
                   </div>
@@ -589,16 +603,15 @@ function CustomerPreviewSheet({
   onClose: () => void;
 }) {
   const { user } = useAuth();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { toast } = useToast();
   useStoreRefresh();
+  const [custImgError, setCustImgError] = useState(false);
   const tt = t.publicProfilePreviewModal;
   const name     = data.customerName?.trim() || tt.fallbackCustomer;
   const initials = data.customerInitials ?? deriveInitials(name);
   const color    = data.customerColor ?? BLUE;
-  const location = data.district
-    ? `${data.district}, ${data.region}`
-    : data.region ?? "";
+  const location = localizeLocation(data.district, data.region, locale);
 
   const customerLocal = data.customerId ? getLocalProfile(data.customerId) : null;
   const photoUrl = customerLocal?.photoUrl ?? data.photoUrl;
@@ -691,7 +704,7 @@ function CustomerPreviewSheet({
             <div className="flex flex-col items-center text-center mb-4">
               {/* Avatar */}
               <div className="relative mb-2">
-                {photoUrl ? (
+                {photoUrl && !custImgError ? (
                   <img
                     src={photoUrl}
                     alt={name}
@@ -700,6 +713,7 @@ function CustomerPreviewSheet({
                       border: `3px solid ${BLUE}`,
                       boxShadow: `0 0 0 6px hsl(221,78%,93%), 0 8px 28px rgba(59,130,246,0.22)`,
                     }}
+                    onError={() => setCustImgError(true)}
                   />
                 ) : (
                   <div

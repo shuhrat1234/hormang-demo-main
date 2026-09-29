@@ -42,6 +42,7 @@ import { getCategoryDisplayName } from "@/lib/categories";
 import { CategoryIcon } from "@/components/category-icon";
 import { tFormat } from "@/lib/i18n";
 import type { Dict } from "@/lib/i18n/locales/uz";
+import { translateSystemMessage } from "@/lib/system-messages";
 
 const VIOLET = "linear-gradient(135deg, hsl(262,80%,54%) 0%, hsl(236,76%,60%) 100%)";
 
@@ -144,23 +145,7 @@ function MsgBubble({
   }, [selected]);
 
   if (msg.sender === "system") {
-    type SysMsgKey = "systemMsgOfferAccepted" | "systemMsgOfferRejected" | "systemMsgOfferSiblingClosed" | "systemMsgProviderConfirmed" | "systemMsgCustomerConfirmed" | "systemMsgCompleted";
-    const knownTexts: Record<string, SysMsgKey> = {
-      "Taklif qabul qilindi — Suhbat davom etmoqda": "systemMsgOfferAccepted",
-      "Taklif rad etildi. Suhbat yopildi.": "systemMsgOfferRejected",
-      "Mijoz boshqa ijrochi taklifini qabul qildi": "systemMsgOfferSiblingClosed",
-      "⏳ Ijrochi xizmat yakunlanganligini tasdiqladi. Mijoz tasdig'i kutilmoqda.": "systemMsgProviderConfirmed",
-      "⏳ Mijoz xizmat yakunlanganligini tasdiqladi. Ijrochi tasdig'i kutilmoqda.": "systemMsgCustomerConfirmed",
-      "✅ Xizmat yakunlandi! Hamkorlik uchun rahmat.": "systemMsgCompleted",
-      "Предложение принято — чат продолжается": "systemMsgOfferAccepted",
-      "Предложение отклонено. Чат закрыт.": "systemMsgOfferRejected",
-      "Клиент принял предложение другого исполнителя": "systemMsgOfferSiblingClosed",
-      "⏳ Исполнитель подтвердил завершение. Ожидается подтверждение клиента.": "systemMsgProviderConfirmed",
-      "⏳ Клиент подтвердил завершение. Ожидается подтверждение исполнителя.": "systemMsgCustomerConfirmed",
-      "✅ Услуга завершена! Спасибо за сотрудничество.": "systemMsgCompleted",
-    };
-    const key = knownTexts[msg.text];
-    const displayText = key ? tt[key] : msg.text;
+    const displayText = translateSystemMessage(msg.text, tt);
     return (
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex justify-center my-2">
         <span className="text-[11px] font-semibold text-gray-500 bg-gray-100 px-3 py-1.5 rounded-full border border-gray-200">
@@ -963,24 +948,7 @@ function ChatRow({ chat, offer, index, onClick, t }: { chat: ProviderChat; offer
         {lastMsg && (
           <p className="text-[11px] text-gray-400 truncate mt-0.5">
             {lastMsg.sender === "system"
-              ? (() => {
-                  const sysMsgs = t.chatPage;
-                  const map: Record<string, string> = {
-                    "Taklif qabul qilindi — Suhbat davom etmoqda": sysMsgs.systemMsgOfferAccepted,
-                    "Taklif rad etildi. Suhbat yopildi.": sysMsgs.systemMsgOfferRejected,
-                    "Mijoz boshqa ijrochi taklifini qabul qildi": sysMsgs.systemMsgOfferSiblingClosed,
-                    "⏳ Ijrochi xizmat yakunlanganligini tasdiqladi. Mijoz tasdig'i kutilmoqda.": sysMsgs.systemMsgProviderConfirmed,
-                    "⏳ Mijoz xizmat yakunlanganligini tasdiqladi. Ijrochi tasdig'i kutilmoqda.": sysMsgs.systemMsgCustomerConfirmed,
-                    "✅ Xizmat yakunlandi! Hamkorlik uchun rahmat.": sysMsgs.systemMsgCompleted,
-                    "Предложение принято — чат продолжается": sysMsgs.systemMsgOfferAccepted,
-                    "Предложение отклонено. Чат закрыт.": sysMsgs.systemMsgOfferRejected,
-                    "Клиент принял предложение другого исполнителя": sysMsgs.systemMsgOfferSiblingClosed,
-                    "⏳ Исполнитель подтвердил завершение. Ожидается подтверждение клиента.": sysMsgs.systemMsgProviderConfirmed,
-                    "⏳ Клиент подтвердил завершение. Ожидается подтверждение исполнителя.": sysMsgs.systemMsgCustomerConfirmed,
-                    "✅ Услуга завершена! Спасибо за сотрудничество.": sysMsgs.systemMsgCompleted,
-                  };
-                  return map[lastMsg.text] ?? lastMsg.text;
-                })()
+              ? translateSystemMessage(lastMsg.text, t.chatPage)
               : (lastMsg.sender === "provider" ? t.providerChats.row.youPrefix : "") + lastMsg.text}
           </p>
         )}

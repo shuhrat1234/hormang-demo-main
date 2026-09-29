@@ -1540,6 +1540,7 @@ export const uz = {
     systemMsgProviderConfirmed: "⏳ Ijrochi xizmat yakunlanganligini tasdiqladi. Mijoz tasdig'i kutilmoqda.",
     systemMsgCustomerConfirmed: "⏳ Mijoz xizmat yakunlanganligini tasdiqladi. Ijrochi tasdig'i kutilmoqda.",
     systemMsgCompleted: "✅ Xizmat yakunlandi! Hamkorlik uchun rahmat.",
+    systemMsgAdminCompleted: "Admin tomonidan yakunlandi",
     deleteForEveryone: "Barchaga o'chirish",
     deleteForMe: "Faqat men uchun",
     messageDeleted: "Xabar o'chirildi",

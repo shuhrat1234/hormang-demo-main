@@ -18,6 +18,7 @@ import { ReportModal } from "@/components/report-modal";
 import { OfferDetailModal } from "@/components/offer-detail-modal";
 import { RequestPreviewModal } from "@/components/request-preview-modal";
 import { getLocalProfile } from "@/lib/local-profile";
+import { translateSystemMessage } from "@/lib/system-messages";
 import { useAuth } from "@/contexts/auth-context";
 import { formatDate } from "@/lib/date-utils";
 import {
@@ -132,22 +133,7 @@ function MessageBubble({
   }, [selected]);
 
   if (msg.sender === "system") {
-    const knownTexts: Record<string, SystemMsgKey> = {
-      "Taklif qabul qilindi — Suhbat davom etmoqda": "systemMsgOfferAccepted",
-      "Taklif rad etildi. Suhbat yopildi.": "systemMsgOfferRejected",
-      "Mijoz boshqa ijrochi taklifini qabul qildi": "systemMsgOfferSiblingClosed",
-      "⏳ Ijrochi xizmat yakunlanganligini tasdiqladi. Mijoz tasdig'i kutilmoqda.": "systemMsgProviderConfirmed",
-      "⏳ Mijoz xizmat yakunlanganligini tasdiqladi. Ijrochi tasdig'i kutilmoqda.": "systemMsgCustomerConfirmed",
-      "✅ Xizmat yakunlandi! Hamkorlik uchun rahmat.": "systemMsgCompleted",
-      "Предложение принято — чат продолжается": "systemMsgOfferAccepted",
-      "Предложение отклонено. Чат закрыт.": "systemMsgOfferRejected",
-      "Клиент принял предложение другого исполнителя": "systemMsgOfferSiblingClosed",
-      "⏳ Исполнитель подтвердил завершение. Ожидается подтверждение клиента.": "systemMsgProviderConfirmed",
-      "⏳ Клиент подтвердил завершение. Ожидается подтверждение исполнителя.": "systemMsgCustomerConfirmed",
-      "✅ Услуга завершена! Спасибо за сотрудничество.": "systemMsgCompleted",
-    };
-    const key = knownTexts[msg.text];
-    const displayText = key ? tt[key] : msg.text;
+    const displayText = translateSystemMessage(msg.text, tt);
     return (
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex justify-center my-2">
         <span className="text-[11px] font-semibold text-gray-500 bg-gray-100 px-3 py-1.5 rounded-full border border-gray-200">
