@@ -232,7 +232,7 @@ export function Navbar() {
                   <>
                     <Button
                       variant="outline"
-                      className="w-full font-semibold border-gray-200"
+                      className="w-full font-semibold bg-white text-gray-700 border-gray-200 hover:bg-blue-50/80 hover:text-blue-600"
                       onClick={() => { setMobileMenuOpen(false); setLocation(user.role === "provider" ? "/dashboard/provider" : "/dashboard/buyer"); }}
                     >
                       {user.firstName} {user.lastName}
@@ -249,7 +249,7 @@ export function Navbar() {
                   <>
                     <Button
                       variant="outline"
-                      className="w-full font-semibold border-gray-200 text-gray-700 hover:text-blue-600 hover:bg-blue-50/80 hover:border-blue-300 transition-all"
+                      className="w-full font-semibold bg-white border-gray-200 text-gray-700 hover:text-blue-600 hover:bg-blue-50/80 hover:border-blue-300 transition-all"
                       onClick={() => { setMobileMenuOpen(false); setLocation("/auth/login"); }}
                     >
                       {t.navbar.login}

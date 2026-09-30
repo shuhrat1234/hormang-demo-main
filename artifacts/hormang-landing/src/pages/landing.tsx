@@ -22,13 +22,13 @@ function RotatingWord({ words }: { words: string[] }) {
   }, [words.length]);
   return (
     <span className="relative inline-block align-bottom">
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="popLayout" initial={false}>
         <motion.span
           key={i}
-          initial={{ opacity: 0, y: 14 }}
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -14 }}
-          transition={{ duration: 0.4, ease: EASE }}
+          exit={{ opacity: 0, y: -12 }}
+          transition={{ duration: 0.25, ease: EASE }}
           className="inline-block text-blue-600 font-extrabold"
         >
           {words[i]}
@@ -64,7 +64,7 @@ function HeroSection() {
   ];
 
   return (
-    <section className="relative overflow-hidden bg-white pt-28 pb-16 md:pt-36 md:pb-24 lg:pt-40 lg:pb-28">
+    <section className="relative overflow-hidden bg-white pt-24 pb-14 md:pt-28 md:pb-20 lg:pt-28 lg:pb-22">
       {/* Background with silk waves matching mockup */}
       <div
         className="absolute inset-0 bg-cover bg-center sm:bg-[center_top] pointer-events-none opacity-95"
@@ -77,14 +77,14 @@ function HeroSection() {
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: EASE }}
-            className="lg:col-span-5 xl:col-span-5 text-center lg:text-left z-10"
+            className="lg:col-span-6 xl:col-span-6 text-center lg:text-left z-10"
           >
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50/80 border border-blue-200/70 text-blue-600 text-[11px] sm:text-xs font-bold tracking-wide uppercase shadow-2xs">
               <Sparkles className="w-3.5 h-3.5 text-blue-500 fill-blue-500/20" />
               <span>{t.landing.hero.badge}</span>
             </div>
 
-            <h1 className="mt-6 font-display text-3xl sm:text-4xl md:text-5xl lg:text-[3.4rem] font-extrabold leading-[1.12] tracking-tight text-gray-900">
+            <h1 className="mt-5 font-display text-3xl sm:text-4xl md:text-5xl lg:text-[3.4rem] font-extrabold leading-[1.12] tracking-tight text-gray-900">
               <span className="block">{t.landing.hero.headlineLine1}</span>
               <span className="block text-blue-600">
                 <RotatingWord words={t.landing.rotateWords} />
@@ -96,7 +96,7 @@ function HeroSection() {
               {t.landing.hero.subtext}
             </p>
 
-            <div className="mt-8 flex flex-col sm:flex-row gap-3.5 justify-center lg:justify-start items-stretch sm:items-center">
+            <div className="mt-7 flex flex-col sm:flex-row gap-3.5 justify-center lg:justify-start items-stretch sm:items-center">
               <Button
                 size="lg"
                 className="h-12 sm:h-13 px-7 rounded-2xl font-bold text-sm sm:text-base gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/25 active:scale-[0.98] transition-all"
@@ -115,7 +115,7 @@ function HeroSection() {
               </Button>
             </div>
 
-            <div className="mt-8 sm:mt-10 pt-2 grid grid-cols-3 gap-2 sm:gap-4 lg:flex lg:flex-row lg:flex-nowrap lg:gap-5 xl:gap-7 justify-center lg:justify-start max-w-md sm:max-w-lg lg:max-w-none mx-auto lg:mx-0">
+            <div className="mt-8 sm:mt-9 pt-2 grid grid-cols-3 gap-2 sm:gap-4 lg:flex lg:flex-row lg:flex-nowrap lg:gap-6 xl:gap-7 justify-center lg:justify-start max-w-md sm:max-w-lg lg:max-w-none mx-auto lg:mx-0">
               {trust.map(({ icon: Icon, label }) => (
                 <div
                   key={label}
@@ -124,7 +124,7 @@ function HeroSection() {
                   <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-blue-50/90 border border-blue-100 flex items-center justify-center text-blue-600 shadow-xs shrink-0">
                     <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
-                  <span className="text-[10px] sm:text-xs lg:text-sm font-semibold text-gray-700 leading-tight max-w-[115px]">
+                  <span className="text-[10px] sm:text-xs lg:text-sm font-semibold text-gray-700 leading-tight max-w-[120px]">
                     {label}
                   </span>
                 </div>
@@ -136,9 +136,9 @@ function HeroSection() {
             initial={{ opacity: 0, x: 24, scale: 0.95 }}
             animate={{ opacity: 1, x: 0, scale: 1 }}
             transition={{ duration: 0.9, ease: EASE, delay: 0.15 }}
-            className="lg:col-span-7 xl:col-span-7 relative flex items-center justify-center lg:justify-end mt-8 lg:mt-0"
+            className="lg:col-span-6 xl:col-span-6 relative flex items-center justify-center lg:justify-end mt-8 lg:mt-0"
           >
-            <div className="relative w-full max-w-[360px] sm:max-w-[520px] lg:max-w-[660px] xl:max-w-[740px] lg:ml-auto lg:mr-0 lg:translate-x-10 xl:translate-x-16 2xl:translate-x-24 lg:scale-110 xl:scale-[1.15] lg:origin-center">
+            <div className="relative w-full max-w-[340px] sm:max-w-[460px] lg:max-w-[520px] xl:max-w-[560px] lg:ml-auto lg:mr-0 lg:translate-x-4 xl:translate-x-6">
               <img
                 src="/images/hero.png"
                 alt={t.landing.hero.surveyAlt}
@@ -519,7 +519,7 @@ function TangaSection() {
           <Button
             size="lg"
             variant="outline"
-            className="h-12 px-7 rounded-xl font-semibold text-sm gap-2 border-gray-200 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200"
+            className="h-12 px-7 rounded-xl font-semibold text-sm gap-2 bg-white text-gray-800 border-gray-200 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200"
             onClick={() => setLocation("/plans")}
           >
             {t.landing.tanga.cta}
@@ -584,7 +584,7 @@ function CTASection() {
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-white text-gray-900">
       <Navbar />
       <HeroSection />
       <HowItWorksSection />
@@ -595,7 +595,9 @@ export default function LandingPage() {
       <TangaSection />
       <CTASection />
       <Footer />
-      <BottomNav />
+      <div className="md:hidden">
+        <BottomNav />
+      </div>
     </div>
   );
 }
