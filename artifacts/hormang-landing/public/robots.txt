@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /settings
+Disallow: /profile
+Disallow: /chat
+Disallow: /my-requests
+Disallow: /provider/
+
+Sitemap: https://hormang.co.uz/sitemap.xml
