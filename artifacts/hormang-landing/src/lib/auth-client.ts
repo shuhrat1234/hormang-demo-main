@@ -15,6 +15,7 @@ export interface SafeUser {
   pendingEmail?: string | null;
   pendingDeleteRequest?: boolean;
   role: "buyer" | "provider";
+  registrationSource?: string | null;
   createdAt: string;
   deletedAt?: string | null;
   suspended?: boolean;
@@ -392,6 +393,7 @@ export async function registerUser(body: {
   phone: string;
   otp: string;
   role: "buyer" | "provider";
+  registrationSource?: string;
 }): Promise<AuthResponse> {
   const normalized = normalizePhone(body.phone);
 
@@ -409,6 +411,17 @@ export async function registerUser(body: {
     const user = mergeBackendUser(res.user);
     setToken(res.accessToken);
     return { user, accessToken: res.accessToken, providerProfile: res.providerProfile };
+  } catch (err) {
+    throwBackendError(err);
+  }
+}
+
+export async function saveRegistrationSource(source: string): Promise<{ ok: boolean; registrationSource: string }> {
+  try {
+    return await apiFetch<{ ok: boolean; registrationSource: string }>("/auth/registration-source", {
+      method: "POST",
+      body: { source },
+    });
   } catch (err) {
     throwBackendError(err);
   }

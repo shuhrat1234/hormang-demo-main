@@ -9,6 +9,16 @@ import app from "./app";
 import { startTelegramBot, startLowBalanceScheduler } from "./lib/telegram.js";
 import { isTelegramConfigured } from "./lib/env.js";
 import { attachChatWebSocket } from "./lib/chat-ws.js";
+import { pool } from "@workspace/db";
+
+// Ensure schema migrations exist without breaking existing deployments
+(async () => {
+  try {
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS registration_source text;`);
+  } catch (err) {
+    console.error("Migration error ensureDbSchema:", err);
+  }
+})();
 
 const rawPort = process.env["PORT"] || "8080";
 

@@ -240,12 +240,13 @@ router.post("/sms/send", async (req, res) => {
 // ─── POST /register (phone + OTP) ──────────────────────────────────────────
 router.post("/register", async (req, res) => {
   try {
-    const { firstName, lastName, phone, otp, role } = req.body as {
+    const { firstName, lastName, phone, otp, role, registrationSource } = req.body as {
       firstName?: string;
       lastName?: string;
       phone?: string;
       otp?: string;
       role?: "buyer" | "provider";
+      registrationSource?: string;
     };
 
     if (!firstName || !lastName || !phone || !otp) {
@@ -279,7 +280,14 @@ router.post("/register", async (req, res) => {
 
     const [user] = await db
       .insert(usersTable)
-      .values({ firstName, lastName, phone: normalized, passwordHash, role })
+      .values({
+        firstName,
+        lastName,
+        phone: normalized,
+        passwordHash,
+        role,
+        registrationSource: registrationSource ? registrationSource.trim().slice(0, 150) : null,
+      })
       .returning();
 
     const safeUser = { ...user, passwordHash: undefined, twoFactorCodeHash: undefined };
@@ -291,6 +299,28 @@ router.post("/register", async (req, res) => {
   } catch (err) {
     console.error("Register error:", err);
     res.status(500).json({ error: "Xatolik yuz berdi. Qayta urinib ko'ring." });
+  }
+});
+
+// ─── POST /registration-source ─────────────────────────────────────────────
+router.post("/registration-source", requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const { source } = req.body as { source?: string };
+    if (!source || typeof source !== "string") {
+      res.status(400).json({ error: "Manba talab qilinadi" });
+      return;
+    }
+    const clean = source.trim().slice(0, 150);
+    const [updated] = await db
+      .update(usersTable)
+      .set({ registrationSource: clean, updatedAt: new Date() })
+      .where(eq(usersTable.id, req.user!.id))
+      .returning();
+
+    res.json({ ok: true, registrationSource: updated?.registrationSource ?? clean });
+  } catch (err) {
+    console.error("Save registration source error:", err);
+    res.status(500).json({ error: "Xatolik yuz berdi" });
   }
 });
 

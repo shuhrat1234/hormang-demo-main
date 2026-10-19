@@ -45,6 +45,7 @@ router.get("/", async (_req, res) => {
           phone: u.phone,
           email: u.email,
           role,
+          registrationSource: u.registrationSource ?? null,
           createdAt: u.createdAt.toISOString(),
           lastLoginAt: u.lastLoginAt?.toISOString() ?? null,
           balance: walletByUser.get(u.id) ?? 0,

@@ -13,6 +13,8 @@ export const usersTable = pgTable("users", {
   phone: text("phone").unique(),
   passwordHash: text("password_hash").notNull(),
   role: userRoleEnum("role").notNull(),
+  /** Source/channel through which the user learned about Hormang (survey on last registration step). */
+  registrationSource: text("registration_source"),
   lastLoginAt: timestamp("last_login_at"),
   /** One-time 100%-profile-completion Tanga reward — set the first (and only) time it's granted. */
   profileBonusGrantedAt: timestamp("profile_bonus_granted_at"),
@@ -48,6 +50,7 @@ export const insertUserSchema = createInsertSchema(usersTable).omit({
   password: z.string().min(8),
   email: z.email().optional(),
   phone: z.string().min(9).optional(),
+  registrationSource: z.string().optional(),
 });
 
 export const selectUserSchema = createSelectSchema(usersTable).omit({

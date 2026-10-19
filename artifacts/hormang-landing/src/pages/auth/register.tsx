@@ -11,7 +11,7 @@ import { useI18n } from "@/contexts/i18n-context";
 import { getActiveCategories, getCategoryDisplayName } from "@/lib/categories";
 import { CategoryIcon } from "@/components/category-icon";
 import { tFormat, getAuthError } from "@/lib/i18n";
-import { sendSmsCode, registerUser, saveProviderProfile } from "@/lib/auth-client";
+import { sendSmsCode, registerUser, saveProviderProfile, saveRegistrationSource } from "@/lib/auth-client";
 import { useToast } from "@/hooks/use-toast";
 import { recordReferralSignup, processReferralReward } from "@/lib/referral-store";
 import logoImg from "/hormang-logo.png";
@@ -25,7 +25,7 @@ function formatPhone(raw: string): string {
   return `${digits.slice(0, 3)} ${digits.slice(2, 5)} ${digits.slice(5, 7)} ${digits.slice(7, 9)}`;
 }
 
-type Step = "info" | "phone" | "otp" | "provider";
+type Step = "info" | "phone" | "otp" | "provider" | "survey";
 
 function makeInfoSchema(t: ReturnType<typeof useI18n>["t"]) {
   return z.object({
@@ -164,6 +164,124 @@ function ProviderForm({ onDone, onBack, loading }: { onDone: (d: ProviderData) =
   );
 }
 
+interface SurveyOptionItem {
+  id: "instagram" | "telegram" | "friends" | "ads" | "other";
+  icon: string;
+  bgActive: string;
+  borderActive: string;
+}
+
+const SURVEY_OPTIONS: SurveyOptionItem[] = [
+  { id: "instagram", icon: "📸", bgActive: "bg-pink-500/10", borderActive: "border-pink-500 ring-2 ring-pink-500/20" },
+  { id: "telegram", icon: "✈️", bgActive: "bg-sky-500/10", borderActive: "border-sky-500 ring-2 ring-sky-500/20" },
+  { id: "friends", icon: "👥", bgActive: "bg-emerald-500/10", borderActive: "border-emerald-500 ring-2 ring-emerald-500/20" },
+  { id: "ads", icon: "🌐", bgActive: "bg-amber-500/10", borderActive: "border-amber-500 ring-2 ring-amber-500/20" },
+  { id: "other", icon: "💬", bgActive: "bg-purple-500/10", borderActive: "border-purple-500 ring-2 ring-purple-500/20" },
+];
+
+function SurveyForm({
+  onDone,
+  onSkip,
+  loading,
+}: {
+  onDone: (source: string) => void;
+  onSkip: () => void;
+  loading: boolean;
+}) {
+  const { t } = useI18n();
+  const [selected, setSelected] = useState<string | null>(null);
+  const [otherText, setOtherText] = useState("");
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selected) {
+      onSkip();
+      return;
+    }
+    if (selected === "other") {
+      const text = otherText.trim();
+      onDone(text ? `other: ${text}` : "other");
+    } else {
+      onDone(selected);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2.5">
+        {SURVEY_OPTIONS.map((opt) => {
+          const isSelected = selected === opt.id;
+          const label = t.auth.register.surveyOptions[opt.id];
+          return (
+            <motion.div
+              key={opt.id}
+              whileTap={{ scale: 0.99 }}
+              onClick={() => setSelected(opt.id)}
+              className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                isSelected
+                  ? `${opt.bgActive} ${opt.borderActive} shadow-sm`
+                  : "bg-card border-border hover:border-primary/40 hover:bg-muted/40"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-xl select-none">{opt.icon}</span>
+                <span className={`text-sm font-semibold ${isSelected ? "text-foreground font-bold" : "text-muted-foreground"}`}>
+                  {label}
+                </span>
+              </div>
+              <div
+                className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                  isSelected ? "border-primary bg-primary text-white" : "border-muted-foreground/30"
+                }`}
+              >
+                {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {selected === "other" && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          transition={{ duration: 0.2 }}
+          className="pt-1"
+        >
+          <input
+            type="text"
+            value={otherText}
+            onChange={(e) => setOtherText(e.target.value)}
+            placeholder={t.auth.register.surveyOtherPlaceholder}
+            className="w-full h-11 px-4 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
+            autoFocus
+          />
+        </motion.div>
+      )}
+
+      <div className="flex gap-3 pt-2">
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={onSkip}
+          disabled={loading}
+          className="h-11 px-4 text-muted-foreground hover:text-foreground font-semibold"
+        >
+          {t.auth.register.surveySkip}
+        </Button>
+        <Button
+          type="submit"
+          disabled={loading || !selected}
+          className="flex-1 h-11 font-bold gap-2"
+        >
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+          {loading ? t.auth.register.surveySaving : t.auth.register.surveyFinish}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
 export default function RegisterPage() {
   const search = useSearch();
   const params = new URLSearchParams(search);
@@ -203,8 +321,8 @@ export default function RegisterPage() {
   }
 
   const stepsForRole: Step[] = role === "provider"
-    ? ["info", "phone", "otp", "provider"]
-    : ["info", "phone", "otp"];
+    ? ["info", "phone", "otp", "provider", "survey"]
+    : ["info", "phone", "otp", "survey"];
 
   async function handleSendCode() {
     setServerError("");
@@ -264,7 +382,7 @@ export default function RegisterPage() {
         setAuth(res.user, null);
         if (refCode) recordReferralSignup(refCode, res.user.id);
         toast({ title: tFormat(t.auth.register.welcomeBuyerTpl, { name: res.user.firstName }) });
-        afterAuthRedirect();
+        setStep("survey");
       } else {
         setAuth(res.user, null);
         if (refCode) recordReferralSignup(refCode, res.user.id);
@@ -289,12 +407,30 @@ export default function RegisterPage() {
       setAuth(user!, profile);
       processReferralReward(user!.id);
       toast({ title: tFormat(t.auth.register.welcomeProviderTpl, { name: user?.firstName ?? "" }) });
-      afterAuthRedirect();
+      setStep("survey");
     } catch (err: unknown) {
       setServerError(getAuthError(err instanceof Error ? err.message : "", t));
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleSurveyDone(source: string) {
+    if (source) {
+      setLoading(true);
+      try {
+        await saveRegistrationSource(source);
+      } catch (err) {
+        console.error("Save registration source failed:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    afterAuthRedirect();
+  }
+
+  function handleSurveySkip() {
+    afterAuthRedirect();
   }
 
   return (
@@ -332,12 +468,14 @@ export default function RegisterPage() {
             {step === "phone" && t.auth.register.titlePhone}
             {step === "otp" && t.auth.register.titleOtp}
             {step === "provider" && t.auth.register.titleProvider}
+            {step === "survey" && t.auth.register.titleSurvey}
           </h1>
           <p className="text-muted-foreground text-sm">
             {step === "info" && t.auth.register.descInfo}
             {step === "phone" && t.auth.register.descPhone}
             {step === "otp" && tFormat(t.auth.register.sentToTpl, { phone })}
             {step === "provider" && t.auth.register.descProvider}
+            {step === "survey" && t.auth.register.descSurvey}
           </p>
         </div>
 
@@ -437,6 +575,12 @@ export default function RegisterPage() {
           {step === "provider" && (
             <motion.div key="provider" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.25 }}>
               <ProviderForm onDone={handleProviderDone} onBack={() => setStep("otp")} loading={loading} />
+            </motion.div>
+          )}
+
+          {step === "survey" && (
+            <motion.div key="survey" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.25 }}>
+              <SurveyForm onDone={handleSurveyDone} onSkip={handleSurveySkip} loading={loading} />
             </motion.div>
           )}
         </AnimatePresence>

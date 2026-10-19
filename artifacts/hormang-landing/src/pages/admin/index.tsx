@@ -1321,9 +1321,51 @@ interface AdminUser {
   tags?:                   string[];
   adminNotes?:             AdminNote[];
   tangaBalance?:           number;
+  /* ── Registration analytics ── */
+  registrationSource?:     string | null;
   /* ── Profile completion reward ── */
   profileRewardGranted?:   boolean;
   profileRewardGrantedAt?: string;
+}
+
+/* ─── Registration source badge helper ────────────────────────────── */
+function renderSourceBadge(source?: string | null) {
+  if (!source) return <span className="text-gray-300 text-[11px]">—</span>;
+  const s = source.toLowerCase().trim();
+  if (s === "instagram" || s.includes("instagram") || s.includes("инстаграм")) {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-pink-50 text-pink-700 border border-pink-200 whitespace-nowrap">
+        <span>📸</span> Instagram
+      </span>
+    );
+  }
+  if (s === "telegram" || s.includes("telegram") || s.includes("телеграм")) {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200 whitespace-nowrap">
+        <span>✈️</span> Telegram
+      </span>
+    );
+  }
+  if (s === "friends" || s.includes("friend") || s.includes("знаком") || s.includes("tanish")) {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
+        <span>👥</span> Tanishlar
+      </span>
+    );
+  }
+  if (s === "ads" || s.includes("ad") || s.includes("reklama") || s.includes("реклама")) {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">
+        <span>🌐</span> Reklama
+      </span>
+    );
+  }
+  const cleanOther = source.startsWith("other:") ? source.slice(6).trim() || "Boshqa" : source === "other" ? "Boshqa" : source;
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200 whitespace-nowrap" title={source}>
+      <span>💬</span> {cleanOther.length > 18 ? cleanOther.slice(0, 18) + "…" : cleanOther}
+    </span>
+  );
 }
 
 /* ─── Advanced User Detail Modal ─────────────────────────────────── */
@@ -1575,6 +1617,7 @@ function AdvancedUserDetailModal({
                     { label: "ID", val: <span className="font-mono text-[11px] text-gray-500">{u.userId}</span> },
                     { label: "Telefon", val: <span className="font-semibold text-gray-800">{u.phone ?? "—"}{u.phoneVerified ? <span className="text-emerald-600 ml-1 text-[10px]">✓</span> : null}</span> },
                     { label: "Joylashuv", val: <span className="font-semibold text-gray-800">{u.location ?? "—"}</span> },
+                    { label: "Manba 📣", val: renderSourceBadge(u.registrationSource) },
                     { label: "Ro'yxat", val: <span className="font-semibold text-gray-800">{u.joinedAt ? fmtDate(u.joinedAt) : "—"}</span> },
                   ].map(({ label, val }) => (
                     <div key={label} className="flex items-center gap-2">
@@ -2833,6 +2876,7 @@ type ActivityFilter = "all" | "new7d" | "active7d" | "inactive30d";
 type PerfFilter     = "all" | "top" | "low" | "nojobs";
 type RiskFilter     = "all" | "flagged" | "suspended";
 type ReferralFilter = "all" | "top" | "none";
+type SourceFilter   = "all" | "instagram" | "telegram" | "friends" | "ads" | "other" | "none";
 
 function UsersSection({ refreshKey, onGoToFeedback, openUserId, onOpenUserIdConsumed }: {
   refreshKey: number;
@@ -2847,6 +2891,7 @@ function UsersSection({ refreshKey, onGoToFeedback, openUserId, onOpenUserIdCons
   const [filterPerf, setFilterPerf]           = useState<PerfFilter>("all");
   const [filterRisk, setFilterRisk]           = useState<RiskFilter>("all");
   const [filterReferral, setFilterReferral]   = useState<ReferralFilter>("all");
+  const [filterSource, setFilterSource]       = useState<SourceFilter>("all");
   const [filterCats, setFilterCats]           = useState<Set<string>>(new Set());
   const [selectedUser, setSelectedUser]       = useState<AdminUser | null>(null);
   const [txUserId, setTxUserId]               = useState<string | null>(null);
@@ -2918,6 +2963,7 @@ function UsersSection({ refreshKey, onGoToFeedback, openUserId, onOpenUserIdCons
         tags:        bu.tags,
         adminNotes:  bu.adminNotes,
         tangaBalance: bu.balance,
+        registrationSource: bu.registrationSource ?? null,
         offerCount:    isProvider ? 0 : undefined,
         acceptedCount: isProvider ? 0 : undefined,
         avgResponseTime: isProvider ? 0 : undefined,
@@ -3165,9 +3211,61 @@ function UsersSection({ refreshKey, onGoToFeedback, openUserId, onOpenUserIdCons
     /* Referral */
     if (filterReferral === "top"  && (u.referralCount ?? 0) < 3)   return false;
     if (filterReferral === "none" && (u.referralCount ?? 0) > 0)   return false;
+    /* Registration source */
+    if (filterSource !== "all") {
+      const src = (u.registrationSource ?? "").toLowerCase().trim();
+      if (filterSource === "none") {
+        if (src) return false;
+      } else if (filterSource === "instagram") {
+        if (!src.includes("instagram") && !src.includes("инстаграм")) return false;
+      } else if (filterSource === "telegram") {
+        if (!src.includes("telegram") && !src.includes("телеграм")) return false;
+      } else if (filterSource === "friends") {
+        if (!src.includes("friend") && !src.includes("знаком") && !src.includes("tanish")) return false;
+      } else if (filterSource === "ads") {
+        if (!src.includes("ad") && !src.includes("reklama") && !src.includes("реклама")) return false;
+      } else if (filterSource === "other") {
+        const isStandard =
+          src.includes("instagram") || src.includes("инстаграм") ||
+          src.includes("telegram") || src.includes("телеграм") ||
+          src.includes("friend") || src.includes("знаком") || src.includes("tanish") ||
+          src.includes("ad") || src.includes("reklama") || src.includes("реклама");
+        if (!src || isStandard) return false;
+      }
+    }
     if (filterCats.size > 0 && !([...filterCats].some((c) => u.categories?.includes(c)))) return false;
     return true;
   });
+
+  /* ── Registration Source Analytics ── */
+  const sourceStats = {
+    total: enriched.length,
+    withSource: enriched.filter((u) => Boolean(u.registrationSource)).length,
+    instagram: enriched.filter((u) => {
+      const s = (u.registrationSource ?? "").toLowerCase();
+      return s.includes("instagram") || s.includes("инстаграм");
+    }).length,
+    telegram: enriched.filter((u) => {
+      const s = (u.registrationSource ?? "").toLowerCase();
+      return s.includes("telegram") || s.includes("телеграм");
+    }).length,
+    friends: enriched.filter((u) => {
+      const s = (u.registrationSource ?? "").toLowerCase();
+      return s.includes("friend") || s.includes("знаком") || s.includes("tanish");
+    }).length,
+    ads: enriched.filter((u) => {
+      const s = (u.registrationSource ?? "").toLowerCase();
+      return s.includes("ad") || s.includes("reklama") || s.includes("реклама");
+    }).length,
+    other: enriched.filter((u) => {
+      const s = (u.registrationSource ?? "").toLowerCase();
+      if (!s) return false;
+      return !s.includes("instagram") && !s.includes("инстаграм") &&
+             !s.includes("telegram") && !s.includes("телеграм") &&
+             !s.includes("friend") && !s.includes("знаком") && !s.includes("tanish") &&
+             !s.includes("ad") && !s.includes("reklama") && !s.includes("реклама");
+    }).length,
+  };
 
   /* ── Metrics ── */
   const providerCount  = enriched.filter((u) => u.role === "provider" || u.role === "both").length;
@@ -3216,6 +3314,107 @@ function UsersSection({ refreshKey, onGoToFeedback, openUserId, onOpenUserIdCons
             <span className={`text-xl font-extrabold ${m.color}`}>{m.value}</span>
           </div>
         ))}
+      </div>
+
+      {/* ── Registration Sources Analytics Widget ── */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-3">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-lg select-none">📣</span>
+            <div>
+              <h3 className="font-extrabold text-gray-900 text-sm">
+                Ro'yxatdan o'tish manbalari tahlili (Аналитика источников регистрации)
+              </h3>
+              <p className="text-xs text-gray-500">
+                Savol: <span className="font-semibold text-gray-700">"Откуда вы узнали о нашей платформе?"</span> · Javob berganlar: <span className="font-extrabold text-gray-900">{sourceStats.withSource}</span> / {sourceStats.total} ta
+              </p>
+            </div>
+          </div>
+          {filterSource !== "all" && (
+            <button
+              onClick={() => setFilterSource("all")}
+              className="text-xs font-bold text-red-600 hover:text-red-700 underline"
+            >
+              Filtrni yechish ✕
+            </button>
+          )}
+        </div>
+
+        {/* Visual proportional distribution bar */}
+        {sourceStats.withSource > 0 && (
+          <div className="h-2 w-full rounded-full bg-gray-100 overflow-hidden flex shadow-inner">
+            {sourceStats.instagram > 0 && (
+              <div
+                style={{ width: `${(sourceStats.instagram / sourceStats.withSource) * 100}%` }}
+                className="bg-pink-500 h-full transition-all"
+                title={`Instagram: ${sourceStats.instagram} ta`}
+              />
+            )}
+            {sourceStats.telegram > 0 && (
+              <div
+                style={{ width: `${(sourceStats.telegram / sourceStats.withSource) * 100}%` }}
+                className="bg-sky-500 h-full transition-all"
+                title={`Telegram: ${sourceStats.telegram} ta`}
+              />
+            )}
+            {sourceStats.friends > 0 && (
+              <div
+                style={{ width: `${(sourceStats.friends / sourceStats.withSource) * 100}%` }}
+                className="bg-emerald-500 h-full transition-all"
+                title={`Tanishlar: ${sourceStats.friends} ta`}
+              />
+            )}
+            {sourceStats.ads > 0 && (
+              <div
+                style={{ width: `${(sourceStats.ads / sourceStats.withSource) * 100}%` }}
+                className="bg-amber-500 h-full transition-all"
+                title={`Internet reklama: ${sourceStats.ads} ta`}
+              />
+            )}
+            {sourceStats.other > 0 && (
+              <div
+                style={{ width: `${(sourceStats.other / sourceStats.withSource) * 100}%` }}
+                className="bg-purple-500 h-full transition-all"
+                title={`Boshqa: ${sourceStats.other} ta`}
+              />
+            )}
+          </div>
+        )}
+
+        {/* Breakdown cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+          {[
+            { id: "instagram" as const, label: "Instagram", icon: "📸", count: sourceStats.instagram, tone: "border-pink-200 bg-pink-50/60 text-pink-700" },
+            { id: "telegram" as const, label: "Telegram", icon: "✈️", count: sourceStats.telegram, tone: "border-sky-200 bg-sky-50/60 text-sky-700" },
+            { id: "friends" as const, label: "Tanishlar", icon: "👥", count: sourceStats.friends, tone: "border-emerald-200 bg-emerald-50/60 text-emerald-700" },
+            { id: "ads" as const, label: "Internet reklama", icon: "🌐", count: sourceStats.ads, tone: "border-amber-200 bg-amber-50/60 text-amber-700" },
+            { id: "other" as const, label: "Boshqa", icon: "💬", count: sourceStats.other, tone: "border-purple-200 bg-purple-50/60 text-purple-700" },
+          ].map((item) => {
+            const pct = sourceStats.withSource > 0 ? Math.round((item.count / sourceStats.withSource) * 100) : 0;
+            const isSelected = filterSource === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setFilterSource(filterSource === item.id ? "all" : item.id)}
+                className={`p-2.5 rounded-xl border text-left transition-all ${item.tone} ${
+                  isSelected ? "ring-2 ring-red-500 shadow-sm scale-[1.02]" : "hover:opacity-90"
+                }`}
+              >
+                <div className="flex items-center justify-between text-xs font-bold">
+                  <span className="flex items-center gap-1.5">
+                    <span>{item.icon}</span> {item.label}
+                  </span>
+                  <span className="font-extrabold">{pct}%</span>
+                </div>
+                <div className="mt-1 flex items-baseline justify-between">
+                  <span className="text-lg font-black">{item.count}</span>
+                  <span className="text-[10px] opacity-75 font-semibold">foydalanuvchi</span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* ── Smart alerts ── */}
@@ -3270,10 +3469,19 @@ function UsersSection({ refreshKey, onGoToFeedback, openUserId, onOpenUserIdCons
             <option value="top">Top (3+ taklif)</option>
             <option value="none">Referal yo'q</option>
           </select>
-          {(filterActivity !== "all" || filterPerf !== "all" || filterRisk !== "all" || filterReferral !== "all" || filterCats.size > 0 || filterRole !== "all") && (
+          <select value={filterSource} onChange={(e) => setFilterSource(e.target.value as SourceFilter)} className={inputCls}>
+            <option value="all">Barcha manbalar</option>
+            <option value="instagram">📸 Instagram</option>
+            <option value="telegram">✈️ Telegram</option>
+            <option value="friends">👥 Tanishlar orqali</option>
+            <option value="ads">🌐 Internet reklama</option>
+            <option value="other">💬 Boshqa</option>
+            <option value="none">Ko'rsatilmagan</option>
+          </select>
+          {(filterActivity !== "all" || filterPerf !== "all" || filterRisk !== "all" || filterReferral !== "all" || filterSource !== "all" || filterCats.size > 0 || filterRole !== "all") && (
             <button onClick={() => {
               setFilterRole("all"); setFilterActivity("all"); setFilterPerf("all");
-              setFilterRisk("all"); setFilterReferral("all"); setFilterCats(new Set()); setSearch("");
+              setFilterRisk("all"); setFilterReferral("all"); setFilterSource("all"); setFilterCats(new Set()); setSearch("");
             }} className="px-3 py-2 rounded-xl bg-gray-100 text-gray-500 text-xs font-bold hover:bg-gray-200 transition-colors">
               Filtrni tozalash ✕
             </button>
@@ -3321,7 +3529,7 @@ function UsersSection({ refreshKey, onGoToFeedback, openUserId, onOpenUserIdCons
                 <tr className="border-b border-gray-100 bg-red-50/40">
                   {[
                     "Foydalanuvchi", "Rol", "Kontakt",
-                    "Samaradorlik", "Murojaatlar 💬", "Tanga 🪙", "Profil bonusi 🎖", "Referral 🔗",
+                    "Samaradorlik", "Murojaatlar 💬", "Tanga 🪙", "Profil bonusi 🎖", "Referral 🔗", "Manba 📣",
                     "Risk", "Teglar", "Holat", "Amallar",
                   ].map((h) => (
                     <th key={h} className="text-left text-[9px] font-bold text-red-400 uppercase tracking-widest px-3 py-3 whitespace-nowrap">
@@ -3472,6 +3680,11 @@ function UsersSection({ refreshKey, onGoToFeedback, openUserId, onOpenUserIdCons
                             )}
                           </div>
                         ) : <span className="text-gray-300 text-[11px]">—</span>}
+                      </td>
+
+                      {/* Manba */}
+                      <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                        {renderSourceBadge(u.registrationSource)}
                       </td>
 
                       {/* Risk */}

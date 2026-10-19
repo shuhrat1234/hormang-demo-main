@@ -97,6 +97,7 @@ export interface BackendAdminNote { text: string; at: string; }
 export interface BackendAdminUser {
   id: string; firstName: string; lastName: string; phone: string | null; email: string | null;
   role: "buyer" | "provider"; createdAt: string; lastLoginAt: string | null;
+  registrationSource?: string | null;
   balance: number; suspended: boolean; verified: boolean; flagCount: number;
   tags: string[]; adminNotes: BackendAdminNote[];
 }
