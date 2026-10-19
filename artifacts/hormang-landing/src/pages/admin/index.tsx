@@ -38,7 +38,7 @@ import {
   upsertCategory as upsertAdminCategory,
   deleteCategory as deleteAdminCategory,
 } from "@/lib/categories";
-import { markAdminAuthenticated, AdminApiError, adminFetch, translateTexts } from "@/lib/admin-client";
+import { adminLogin, adminLogout, markAdminAuthenticated, AdminApiError, adminFetch, translateTexts } from "@/lib/admin-client";
 import {
   fetchPricingTiers, createPricingTier, updatePricingTier, setPricingTierActive, deletePricingTier, reorderPricingTiers,
   fetchAdminWallets, fetchAllWalletTransactions, fetchWalletTransactions, adjustWalletBalance as adjustWalletBalanceBackend,
@@ -91,8 +91,7 @@ import {
 } from "@/lib/report-store";
 
 /* ─── Credentials ───────────────────────────────────────────────── */
-const ADMIN_USER = "hormangVIP";
-const ADMIN_PASS = "ourhormang123";
+const ADMIN_USER = "admin";
 const SESSION_KEY = "hormang_admin_session_v1";
 
 /* ─── Storage keys (mirrors main app exactly) ────────────────────── */
@@ -260,9 +259,9 @@ function setUserVerifiedStatus(userId: string, val: boolean) {
 }
 
 /* ─── Session ───────────────────────────────────────────────────── */
-function getSession() { return sessionStorage.getItem(SESSION_KEY) === "1"; }
+function getSession() { return sessionStorage.getItem(SESSION_KEY) === "1" && Boolean(sessionStorage.getItem("hormang_admin_token")); }
 function setSession() { sessionStorage.setItem(SESSION_KEY, "1"); }
-function clearSession() { sessionStorage.removeItem(SESSION_KEY); }
+function clearSession() { sessionStorage.removeItem(SESSION_KEY); sessionStorage.removeItem("hormang_admin_token"); }
 
 /* ─── Formatting ─────────────────────────────────────────────────── */
 function fmtDate(iso: string) {
@@ -386,20 +385,21 @@ function LoginGate({ onSuccess }: { onSuccess: () => void }) {
   const [error,    setError]    = useState("");
   const [loading,  setLoading]  = useState(false);
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
-      if (username === ADMIN_USER && password === ADMIN_PASS) {
-        setSession();
-        markAdminAuthenticated();
-        logAction({ actorId: ADMIN_USER, actorRole: "admin", action: "LOGIN", category: "admin", description: "Admin tizimga kirdi" });
-        onSuccess();
-      } else {
-        setError("Noto'g'ri login yoki parol");
-        setLoading(false);
-      }
-    }, 600);
+    setError("");
+    try {
+      const res = await adminLogin(password, username);
+      setSession();
+      markAdminAuthenticated(res.token);
+      logAction({ actorId: username || ADMIN_USER, actorRole: "admin", action: "LOGIN", category: "admin", description: "Admin tizimga kirdi" });
+      onSuccess();
+    } catch (err: any) {
+      setError(err?.message || "Noto'g'ri login yoki parol");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -7469,7 +7469,9 @@ export default function AdminDashboard() {
      which otherwise skips LoginGate entirely and leaves admin write calls
      403ing with no x-admin-key header. */
   useEffect(() => {
-    if (authed) markAdminAuthenticated();
+    if (authed && !sessionStorage.getItem("hormang_admin_token")) {
+      setAuthed(false);
+    }
   }, [authed]);
 
   /* Subscribe to main app store events + cross-tab storage events */
@@ -7484,6 +7486,7 @@ export default function AdminDashboard() {
   function logout() {
     logAction({ actorId: ADMIN_USER, actorRole: "admin", action: "LOGOUT", category: "admin", description: "Admin tizimdan chiqdi" });
     clearSession();
+    adminLogout();
     setAuthed(false);
   }
 

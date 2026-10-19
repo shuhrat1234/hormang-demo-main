@@ -143,29 +143,37 @@ router.get("/mine", requireAuth, async (req: AuthRequest, res) => {
   }
 });
 
-// ─── GET /by-pair/:requestId/:masterId — get-or-create a chat + its messages ─
+// ─── GET /by-pair/:requestId/:masterId — get a chat + its messages ─────────
 router.get("/by-pair/:requestId/:masterId", requireAuth, async (req: AuthRequest, res) => {
   try {
     const requestId: string = String(req.params.requestId);
     const masterId: string = String(req.params.masterId);
 
-    let [chat] = await db.select().from(chatsTable).where(and(eq(chatsTable.requestId, requestId), eq(chatsTable.masterId, masterId))).limit(1);
+    const [chat] = await db
+      .select()
+      .from(chatsTable)
+      .where(and(eq(chatsTable.requestId, requestId), eq(chatsTable.masterId, masterId)))
+      .limit(1);
+
+    // S4: Do not auto-create chats without an offer; chats are created upon valid offer submission
     if (!chat) {
-      const role = await resolveRole({ requestId, masterId }, req.user!.id);
-      if (!role) {
-        res.status(403).json({ error: "Ruxsat yo'q" });
-        return;
-      }
-      [chat] = await db.insert(chatsTable).values({ id: `${requestId}_${masterId}`, requestId, masterId }).returning();
-    } else if (!(await resolveRole(chat, req.user!.id))) {
+      res.status(404).json({ error: "Chat topilmadi" });
+      return;
+    }
+
+    if (!(await resolveRole(chat, req.user!.id))) {
       res.status(403).json({ error: "Ruxsat yo'q" });
       return;
     }
 
-    const messages = await db.select().from(chatMessagesTable).where(eq(chatMessagesTable.chatId, chat.id)).orderBy(asc(chatMessagesTable.createdAt));
+    const messages = await db
+      .select()
+      .from(chatMessagesTable)
+      .where(eq(chatMessagesTable.chatId, chat.id))
+      .orderBy(asc(chatMessagesTable.createdAt));
     res.json({ chat: chatJson(chat), messages: messages.map(messageJson) });
   } catch (err) {
-    console.error("Get or create chat error:", err);
+    console.error("Get chat error:", err);
     res.status(500).json({ error: "Xatolik yuz berdi" });
   }
 });
@@ -179,6 +187,35 @@ router.post("/:chatId/messages", requireAuth, async (req: AuthRequest, res) => {
       res.status(400).json({ error: "text yoki attachment talab qilinadi" });
       return;
     }
+
+    // S16: Validate payload limits and file formats
+    if (text && text.length > 5000) {
+      res.status(400).json({ error: "Xabar matni juda uzun (maksimal 5000 belgi)" });
+      return;
+    }
+
+    if (attachment) {
+      if (attachment.type !== "image" && attachment.type !== "file") {
+        res.status(400).json({ error: "Noto'g'ri biriktirma turi" });
+        return;
+      }
+      if (!attachment.url || typeof attachment.url !== "string") {
+        res.status(400).json({ error: "Noto'g'ri biriktirma manzili" });
+        return;
+      }
+      const url = attachment.url.trim();
+      const isDataImage = url.startsWith("data:image/");
+      const isHttp = url.startsWith("http://") || url.startsWith("https://") || url.startsWith("/");
+      if (!isDataImage && !isHttp) {
+        res.status(400).json({ error: "Faqat xavfsiz rasm yoki fayl manzillari qabul qilinadi" });
+        return;
+      }
+      if (isDataImage && url.length > 15 * 1024 * 1024) {
+        res.status(400).json({ error: "Fayl hajmi 15MB dan oshmasligi kerak" });
+        return;
+      }
+    }
+
     const [chat] = await db.select().from(chatsTable).where(eq(chatsTable.id, chatId)).limit(1);
     if (!chat) {
       res.status(404).json({ error: "Chat topilmadi" });

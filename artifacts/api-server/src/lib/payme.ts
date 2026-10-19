@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import {
   db,
   paymentOrdersTable,
@@ -51,11 +51,11 @@ export function buildPaymeCheckoutUrl(order: Pick<PaymentOrder, "id" | "amountSo
 
 function verifyAuth(authHeader: string | undefined): boolean {
   if (!isPaymeConfigured()) return false;
-  const { key, testKey } = getPaymeConfig();
+  const { key, testKey, testEnv } = getPaymeConfig();
   if (!authHeader?.startsWith("Basic ")) return false;
   const decoded = Buffer.from(authHeader.slice(6), "base64").toString("utf-8");
   const [, providedKey] = decoded.split(":");
-  return providedKey === key || (!!testKey && providedKey === testKey);
+  return providedKey === key || (Boolean(testKey && testEnv) && providedKey === testKey);
 }
 
 async function findOrderByAccount(orderId: string): Promise<
@@ -203,6 +203,17 @@ async function performTransaction(params: { id: string }) {
 
   const performedAt = new Date();
   const updated = await db.transaction(async (tx) => {
+    // S15: Atomically transition from pending to paid to prevent race conditions
+    const [claimedOrder] = await tx
+      .update(paymentOrdersTable)
+      .set({ status: "paid", performedAt, updatedAt: new Date() })
+      .where(and(eq(paymentOrdersTable.id, order.id), eq(paymentOrdersTable.status, "pending")))
+      .returning();
+
+    if (!claimedOrder) {
+      throw new PaymeError(PaymeErrorCode.UnableToPerform, "Tranzaksiyani bajarib bo'lmaydi");
+    }
+
     const [tier] = await tx
       .select()
       .from(pricingTiersTable)
@@ -221,7 +232,7 @@ async function performTransaction(params: { id: string }) {
     if (existingWallet) {
       await tx
         .update(walletsTable)
-        .set({ balance: existingWallet.balance + credited, updatedAt: new Date() })
+        .set({ balance: sql`${walletsTable.balance} + ${credited}`, updatedAt: new Date() })
         .where(eq(walletsTable.userId, order.userId));
     } else {
       await tx.insert(walletsTable).values({ userId: order.userId, balance: credited });
@@ -237,12 +248,7 @@ async function performTransaction(params: { id: string }) {
       description: `${tier.nameUz} — Payme orqali sotib olindi`,
     });
 
-    const [row] = await tx
-      .update(paymentOrdersTable)
-      .set({ status: "paid", performedAt, updatedAt: new Date() })
-      .where(eq(paymentOrdersTable.id, order.id))
-      .returning();
-    return row;
+    return claimedOrder;
   });
 
   return { transaction: updated.id, perform_time: performedAt.getTime(), state: 2 };

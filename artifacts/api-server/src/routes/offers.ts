@@ -2,7 +2,9 @@ import { Router, type IRouter } from "express";
 import { eq, and, desc, inArray, sql } from "drizzle-orm";
 import {
   db, requestsTable, offersTable, chatsTable, chatMessagesTable,
-  walletsTable, tangaTransactionsTable, reviewsTable, providerProfilesTable, type OfferRow, type RequestRow, type Review,
+  walletsTable, tangaTransactionsTable, reviewsTable, providerProfilesTable,
+  categoriesTable, categoryQuestionsTable, commonQuestionsTable, usersTable,
+  type OfferRow, type RequestRow, type Review,
 } from "@workspace/db";
 import { requireAuth, type AuthRequest } from "../middlewares/auth.js";
 import { requireAdminKey } from "../middlewares/admin.js";
@@ -13,6 +15,102 @@ const MAX_ACTIVE_OFFERS = 5;
 const MAX_LIFETIME_OFFERS = 10;
 const ACTIVE_STATUSES: OfferRow["status"][] = ["pending", "negotiating", "accepted"];
 const MINIMUM_OFFER_COST = 2;
+
+// S2: Server-side offer cost calculation to prevent underpayment
+interface QuestionOption {
+  value: string;
+  tangaCost?: number;
+}
+
+interface QuestionItem {
+  id: string;
+  type: string;
+  options?: QuestionOption[];
+  conditionalBranches?: Record<string, QuestionItem[]>;
+}
+
+function collectActiveQuestions(
+  questions: QuestionItem[],
+  answers: Record<string, unknown>
+): QuestionItem[] {
+  const result: QuestionItem[] = [];
+  for (const q of questions) {
+    result.push(q);
+    if (!q.conditionalBranches) continue;
+    if (q.type === "single-select") {
+      const val = answers[q.id] as string | null;
+      if (val && q.conditionalBranches[val]?.length) {
+        result.push(...collectActiveQuestions(q.conditionalBranches[val], answers));
+      }
+    } else if (q.type === "multi-select") {
+      const vals = (answers[q.id] as string[]) ?? [];
+      const seen = new Set<string>();
+      for (const v of vals) {
+        for (const bq of q.conditionalBranches[v] ?? []) {
+          if (!seen.has(bq.id)) {
+            seen.add(bq.id);
+            result.push(...collectActiveQuestions([bq], answers));
+          }
+        }
+      }
+    }
+  }
+  return result;
+}
+
+async function calculateServerOfferCost(
+  categoryId: string,
+  answers: Record<string, unknown> = {}
+): Promise<number> {
+  try {
+    const [category] = await db
+      .select({ baseCost: categoriesTable.baseCost })
+      .from(categoriesTable)
+      .where(eq(categoriesTable.id, categoryId))
+      .limit(1);
+
+    const baseCost = category?.baseCost ?? 0;
+
+    const [cq] = await db
+      .select({ questions: categoryQuestionsTable.questions })
+      .from(categoryQuestionsTable)
+      .where(eq(categoryQuestionsTable.categoryId, categoryId))
+      .limit(1);
+
+    const [common] = await db
+      .select({ questions: commonQuestionsTable.questions })
+      .from(commonQuestionsTable)
+      .limit(1);
+
+    const categoryQuestions = (cq?.questions ?? []) as QuestionItem[];
+    const commonQuestions = (common?.questions ?? []) as QuestionItem[];
+    const allQuestions = [...categoryQuestions, ...commonQuestions];
+
+    const activeQuestions = collectActiveQuestions(allQuestions, answers);
+    let optionsCost = 0;
+
+    for (const q of activeQuestions) {
+      if (q.type === "single-select") {
+        const selectedVal = answers[q.id] as string | undefined;
+        if (selectedVal) {
+          const opt = q.options?.find((o) => o.value === selectedVal);
+          optionsCost += opt?.tangaCost ?? 0;
+        }
+      } else if (q.type === "multi-select") {
+        const selectedVals = (answers[q.id] as string[] | undefined) ?? [];
+        for (const val of selectedVals) {
+          const opt = q.options?.find((o) => o.value === val);
+          optionsCost += opt?.tangaCost ?? 0;
+        }
+      }
+    }
+
+    return Math.max(baseCost + optionsCost, MINIMUM_OFFER_COST);
+  } catch (err) {
+    console.error("Error calculating server offer cost:", err);
+    return MINIMUM_OFFER_COST;
+  }
+}
 
 function toJson(row: OfferRow, masterPhotoUrl?: string | null) {
   return {
@@ -105,19 +203,49 @@ router.get("/for-my-requests", requireAuth, async (req: AuthRequest, res) => {
   }
 });
 
-// ─── GET /by-request/:requestId — every offer on a request ──────────────────
-router.get("/by-request/:requestId", requireAuth, async (req, res) => {
+// ─── GET /by-request/:requestId — offers on a request (customer sees all; provider sees only own) ─
+router.get("/by-request/:requestId", requireAuth, async (req: AuthRequest, res) => {
   try {
     const requestId: string = String(req.params.requestId);
-    const rows = await db
-      .select({
-        offer: offersTable,
-        masterPhotoUrl: providerProfilesTable.photoUrl,
-      })
-      .from(offersTable)
-      .leftJoin(providerProfilesTable, eq(providerProfilesTable.userId, offersTable.masterId))
-      .where(eq(offersTable.requestId, requestId))
-      .orderBy(desc(offersTable.createdAt));
+    const userId = req.user!.id;
+
+    const [request] = await db
+      .select({ customerId: requestsTable.customerId })
+      .from(requestsTable)
+      .where(eq(requestsTable.id, requestId))
+      .limit(1);
+
+    if (!request) {
+      res.status(404).json({ error: "So'rov topilmadi" });
+      return;
+    }
+
+    const isCustomer = request.customerId === userId;
+
+    let rows;
+    if (isCustomer) {
+      rows = await db
+        .select({
+          offer: offersTable,
+          masterPhotoUrl: providerProfilesTable.photoUrl,
+        })
+        .from(offersTable)
+        .leftJoin(providerProfilesTable, eq(providerProfilesTable.userId, offersTable.masterId))
+        .where(eq(offersTable.requestId, requestId))
+        .orderBy(desc(offersTable.createdAt));
+    } else {
+      // S11: Competitor providers cannot see other providers' bids/messages
+      rows = await db
+        .select({
+          offer: offersTable,
+          masterPhotoUrl: providerProfilesTable.photoUrl,
+        })
+        .from(offersTable)
+        .leftJoin(providerProfilesTable, eq(providerProfilesTable.userId, offersTable.masterId))
+        .where(and(eq(offersTable.requestId, requestId), eq(offersTable.masterId, userId)))
+        .orderBy(desc(offersTable.createdAt));
+    }
+
     res.json({ offers: rows.map((r) => toJson(r.offer, r.masterPhotoUrl)) });
   } catch (err) {
     console.error("List offers by request error:", err);
@@ -126,22 +254,34 @@ router.get("/by-request/:requestId", requireAuth, async (req, res) => {
 });
 
 // ─── GET /:id ────────────────────────────────────────────────────────────
-router.get("/:id", async (req, res) => {
+router.get("/:id", requireAuth, async (req: AuthRequest, res) => {
   try {
     const id: string = String(req.params.id);
+    const userId = req.user!.id;
+
     const [row] = await db
       .select({
         offer: offersTable,
+        customerId: requestsTable.customerId,
         masterPhotoUrl: providerProfilesTable.photoUrl,
       })
       .from(offersTable)
+      .innerJoin(requestsTable, eq(requestsTable.id, offersTable.requestId))
       .leftJoin(providerProfilesTable, eq(providerProfilesTable.userId, offersTable.masterId))
       .where(eq(offersTable.id, id))
       .limit(1);
+
     if (!row) {
       res.status(404).json({ error: "Taklif topilmadi" });
       return;
     }
+
+    // S11: Only request creator or offer provider can read offer details
+    if (row.offer.masterId !== userId && row.customerId !== userId) {
+      res.status(403).json({ error: "Ruxsat yo'q" });
+      return;
+    }
+
     res.json({ offer: toJson(row.offer, row.masterPhotoUrl) });
   } catch (err) {
     console.error("Get offer error:", err);
@@ -157,14 +297,11 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
     const body = req.body as {
       requestId?: string; price?: number; priceLabel?: string; message?: string;
       fileUrls?: string[]; costTanga?: number;
-      masterName?: string; masterInitials?: string; masterColor?: string;
-      masterPhotoUrl?: string;
     };
-    if (!body.requestId || !body.price || !body.message?.trim() || !body.costTanga) {
-      res.status(400).json({ error: "requestId, price, message, costTanga talab qilinadi" });
+    if (!body.requestId || !body.price || !body.message?.trim()) {
+      res.status(400).json({ error: "requestId, price, message talab qilinadi" });
       return;
     }
-    const costTanga = Math.max(Math.floor(body.costTanga), MINIMUM_OFFER_COST);
 
     const check = await canSubmitOffer(body.requestId, masterId);
     if (!check.ok || !check.request) {
@@ -172,21 +309,45 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
       return;
     }
 
+    // S2: Authoritatively calculate offer cost on the server based on category and answers
+    const costTanga = await calculateServerOfferCost(
+      check.request.categoryId,
+      (check.request.answers as Record<string, unknown>) ?? {}
+    );
+
+    // S5: Authoritatively derive provider identity from DB to prevent spoofing
+    const [user] = await db
+      .select({ firstName: usersTable.firstName, lastName: usersTable.lastName })
+      .from(usersTable)
+      .where(eq(usersTable.id, masterId))
+      .limit(1);
+
+    const [providerProf] = await db
+      .select({ photoUrl: providerProfilesTable.photoUrl })
+      .from(providerProfilesTable)
+      .where(eq(providerProfilesTable.userId, masterId))
+      .limit(1);
+
+    const masterName = [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim() || "Ijrochi";
+    const fInit = user?.firstName?.[0] || "I";
+    const lInit = user?.lastName?.[0] || "J";
+    const masterInitials = `${fInit}${lInit}`.toUpperCase();
+    const masterColor = "#7C3AED";
+
     let insufficientBalance = false;
     let createdOffer: OfferRow | undefined;
 
     await db.transaction(async (tx) => {
-      const [wallet] = await tx.select().from(walletsTable).where(eq(walletsTable.userId, masterId)).limit(1);
-      const balance = wallet?.balance ?? 0;
-      if (balance < costTanga) {
+      // S15: Atomic wallet debit to prevent race condition double-spend
+      const updatedWallet = await tx
+        .update(walletsTable)
+        .set({ balance: sql`${walletsTable.balance} - ${costTanga}`, updatedAt: new Date() })
+        .where(and(eq(walletsTable.userId, masterId), sql`${walletsTable.balance} >= ${costTanga}`))
+        .returning();
+
+      if (!updatedWallet.length) {
         insufficientBalance = true;
         return;
-      }
-      const newBalance = balance - costTanga;
-      if (wallet) {
-        await tx.update(walletsTable).set({ balance: newBalance, updatedAt: new Date() }).where(eq(walletsTable.userId, masterId));
-      } else {
-        await tx.insert(walletsTable).values({ userId: masterId, balance: newBalance });
       }
 
       const [offer] = await tx
@@ -194,9 +355,9 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
         .values({
           requestId: body.requestId!,
           masterId,
-          masterName: body.masterName ?? "Ijrochi",
-          masterInitials: body.masterInitials ?? "IJ",
-          masterColor: body.masterColor ?? "#7C3AED",
+          masterName,
+          masterInitials,
+          masterColor,
           price: body.price!,
           priceLabel: body.priceLabel ?? null,
           message: body.message!.trim(),
@@ -228,27 +389,6 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
     if (insufficientBalance) {
       res.status(400).json({ error: "insufficient_balance" });
       return;
-    }
-    if (body.masterPhotoUrl) {
-      const [existingProf] = await db
-        .select({ id: providerProfilesTable.id, photoUrl: providerProfilesTable.photoUrl })
-        .from(providerProfilesTable)
-        .where(eq(providerProfilesTable.userId, masterId))
-        .limit(1);
-      if (existingProf) {
-        if (!existingProf.photoUrl) {
-          await db
-            .update(providerProfilesTable)
-            .set({ photoUrl: body.masterPhotoUrl, updatedAt: new Date() })
-            .where(eq(providerProfilesTable.userId, masterId));
-        }
-      } else {
-        await db.insert(providerProfilesTable).values({
-          userId: masterId,
-          photoUrl: body.masterPhotoUrl,
-          categories: [check.request!.categoryId],
-        }).onConflictDoNothing();
-      }
     }
 
     const created = await getOfferWithPhoto(createdOffer!.id);
@@ -376,6 +516,11 @@ router.patch("/:id/in-progress", requireAuth, async (req: AuthRequest, res) => {
       res.status(404).json({ error: "Taklif topilmadi" });
       return;
     }
+    // S13: Only an accepted offer can transition to in-progress
+    if (offer.status !== "accepted") {
+      res.status(400).json({ error: "Faqat qabul qilingan taklifni boshlash mumkin" });
+      return;
+    }
     await db.update(offersTable).set({ status: "in_progress" }).where(eq(offersTable.id, id));
     const updated = await getOfferWithPhoto(id);
     res.json({ offer: updated });
@@ -402,7 +547,19 @@ router.patch("/:id/confirm-completion", requireAuth, async (req: AuthRequest, re
       res.status(404).json({ error: "Taklif topilmadi" });
       return;
     }
+
+    // S13: Offer must be accepted or in_progress to be completed
+    if (offer.status !== "accepted" && offer.status !== "in_progress") {
+      res.status(400).json({ error: "Faqat qabul qilingan yoki jarayondagi ishni yakunlash mumkin" });
+      return;
+    }
+
     const [request] = await db.select().from(requestsTable).where(eq(requestsTable.id, offer.requestId)).limit(1);
+    if (!request || request.acceptedOfferId !== offer.id) {
+      res.status(400).json({ error: "Ushbu so'rov uchun ushbu taklif qabul qilinmagan" });
+      return;
+    }
+
     const isProvider = role === "provider" && offer.masterId === req.user!.id;
     const isCustomer = role === "customer" && request?.customerId === req.user!.id;
     if (!isProvider && !isCustomer) {

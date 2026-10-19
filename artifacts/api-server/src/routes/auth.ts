@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { eq, and, isNull } from "drizzle-orm";
+import rateLimit from "express-rate-limit";
 import { db, usersTable, providerProfilesTable, userModerationTable } from "@workspace/db";
 import {
   hashPassword,
@@ -10,7 +11,7 @@ import {
   COOKIE_OPTS,
 } from "../lib/auth.js";
 import type { AuthRequest } from "../middlewares/auth.js";
-import { requireAuth } from "../middlewares/auth.js";
+import { requireAuth, revokeToken } from "../middlewares/auth.js";
 import { isEskizConfigured, isResendConfigured, env } from "../lib/env.js";
 import { sendOtpSms } from "../lib/eskiz.js";
 import { sendOtpEmail } from "../lib/resend.js";
@@ -18,9 +19,26 @@ import crypto from "crypto";
 
 const router = Router();
 
+// S7: Rate limiting for SMS and Auth endpoints
+const smsRateLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 5,
+  message: { error: "SMS yuborish chegarasi oshdi. Birozdan so'ng qayta urinib ko'ring." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const authRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 25,
+  message: { error: "Juda ko'p urinishlar. Iltimos keyinroq qayta urinib ko'ring." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // ─── OTP Store ────────────────────────────────────────────────────────────────
 type OtpChannel = "sms" | "email";
-interface OtpEntry { code: string; expiresAt: number; purpose: string; channel: OtpChannel }
+interface OtpEntry { code: string; expiresAt: number; purpose: string; channel: OtpChannel; attempts: number }
 const otpStore = new Map<string, OtpEntry>();
 
 function normalizePhone(phone: string): string {
@@ -82,15 +100,23 @@ function otpKey(channel: OtpChannel, destination: string): string {
 }
 
 function storeOtp(channel: OtpChannel, destination: string, purpose: string): string {
-  const code = (!env.isProduction && channel === "sms")
+  const enableDevOtp = process.env.ENABLE_DEV_OTP === "true" && !env.isProduction;
+  const code = (enableDevOtp && channel === "sms")
     ? "000000"
-    : Math.floor(100000 + Math.random() * 900000).toString();
-  otpStore.set(otpKey(channel, destination), { code, expiresAt: Date.now() + 5 * 60 * 1000, purpose, channel });
+    : crypto.randomInt(100000, 1000000).toString();
+  otpStore.set(otpKey(channel, destination), {
+    code,
+    expiresAt: Date.now() + 5 * 60 * 1000,
+    purpose,
+    channel,
+    attempts: 0,
+  });
   return code;
 }
 
 function verifyOtp(channel: OtpChannel, destination: string, code: string, purpose: string): boolean {
-  if (!env.isProduction && channel === "sms" && code === "000000") {
+  const enableDevOtp = process.env.ENABLE_DEV_OTP === "true" && !env.isProduction;
+  if (enableDevOtp && channel === "sms" && code === "000000") {
     const key = otpKey(channel, destination);
     otpStore.delete(key);
     return true;
@@ -98,9 +124,19 @@ function verifyOtp(channel: OtpChannel, destination: string, code: string, purpo
   const key = otpKey(channel, destination);
   const entry = otpStore.get(key);
   if (!entry) return false;
-  if (Date.now() > entry.expiresAt) { otpStore.delete(key); return false; }
+  if (Date.now() > entry.expiresAt) {
+    otpStore.delete(key);
+    return false;
+  }
   if (entry.purpose !== purpose) return false;
-  if (entry.code !== code) return false;
+  if (entry.code !== code) {
+    entry.attempts = (entry.attempts || 0) + 1;
+    // S7: Invalidate OTP on 5 failed attempts to prevent brute force
+    if (entry.attempts >= 5) {
+      otpStore.delete(key);
+    }
+    return false;
+  }
   otpStore.delete(key);
   return true;
 }
@@ -137,7 +173,7 @@ async function getProviderProfile(userId: string) {
 }
 
 // ─── POST /sms/send ─────────────────────────────────────────────────────────
-router.post("/sms/send", async (req, res) => {
+router.post("/sms/send", smsRateLimiter, async (req, res) => {
   try {
     const { phone, purpose, forceSms } = req.body as { phone?: string; purpose?: string; forceSms?: boolean };
 
@@ -238,7 +274,7 @@ router.post("/sms/send", async (req, res) => {
 });
 
 // ─── POST /register (phone + OTP) ──────────────────────────────────────────
-router.post("/register", async (req, res) => {
+router.post("/register", authRateLimiter, async (req, res) => {
   try {
     const { firstName, lastName, phone, otp, role, registrationSource } = req.body as {
       firstName?: string;
@@ -392,7 +428,7 @@ router.post("/register/provider-profile", requireAuth, async (req: AuthRequest, 
 });
 
 // ─── POST /login (phone + OTP) ──────────────────────────────────────────────
-router.post("/login", async (req, res) => {
+router.post("/login", authRateLimiter, async (req, res) => {
   const { phone, otp } = req.body as { phone?: string; otp?: string };
   const normalized = normalizePhone(phone ?? "");
   const { blocked, remaining } = checkRateLimit(normalized);
@@ -467,7 +503,7 @@ router.post("/login", async (req, res) => {
 });
 
 // ─── POST /login-email/send (send a login code to a verified email, no phone) ─
-router.post("/login-email/send", async (req, res) => {
+router.post("/login-email/send", smsRateLimiter, async (req, res) => {
   try {
     const { email } = req.body as { email?: string };
     if (!email || !isValidEmail(email)) {
@@ -502,7 +538,7 @@ router.post("/login-email/send", async (req, res) => {
 });
 
 // ─── POST /login-email (verify the code, log in by email — no phone needed) ─
-router.post("/login-email", async (req, res) => {
+router.post("/login-email", authRateLimiter, async (req, res) => {
   const { email, otp } = req.body as { email?: string; otp?: string };
   if (!email || !otp) {
     res.status(400).json({ error: "Email va tasdiqlash kodi talab qilinadi" });
@@ -697,8 +733,13 @@ router.post("/refresh", async (req, res) => {
       .where(eq(usersTable.id, payload.sub as string))
       .limit(1);
 
-    if (!user) {
-      res.status(401).json({ error: "Foydalanuvchi topilmadi" });
+    if (!user || user.deletedAt) {
+      res.status(401).json({ error: "Foydalanuvchi topilmadi yoki hisob o'chirilgan" });
+      return;
+    }
+
+    if (await isUserSuspended(user.id)) {
+      res.status(403).json({ error: "Hisob ma'muriyat tomonidan to'xtatilgan" });
       return;
     }
 
@@ -713,7 +754,11 @@ router.post("/refresh", async (req, res) => {
 });
 
 // ─── POST /logout ───────────────────────────────────────────────────────────
-router.post("/logout", (_req, res) => {
+router.post("/logout", (req: AuthRequest, res) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith("Bearer ")) {
+    revokeToken(authHeader.slice(7));
+  }
   res.clearCookie("refreshToken", { path: "/" });
   res.json({ ok: true });
 });
@@ -721,16 +766,16 @@ router.post("/logout", (_req, res) => {
 // ─── PUT /profile ──────────────────────────────────────────────────────────
 router.put("/profile", requireAuth, async (req: AuthRequest, res) => {
   try {
-    const { firstName, lastName, email } = req.body as {
+    const { firstName, lastName } = req.body as {
       firstName?: string;
       lastName?: string;
-      email?: string;
     };
 
     const updates: Record<string, unknown> = { updatedAt: new Date() };
-    if (firstName) updates.firstName = firstName;
-    if (lastName) updates.lastName = lastName;
-    if (email !== undefined) updates.email = email || null;
+    if (firstName?.trim()) updates.firstName = firstName.trim();
+    if (lastName?.trim()) updates.lastName = lastName.trim();
+
+    // S9: Email cannot be changed via PUT /profile — it must go through /auth/change-email (verified OTP flow)
 
     const [user] = await db
       .update(usersTable)
@@ -1417,9 +1462,15 @@ router.get("/providers/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const [user] = await db
-      .select()
+      .select({
+        id: usersTable.id,
+        firstName: usersTable.firstName,
+        lastName: usersTable.lastName,
+        role: usersTable.role,
+        createdAt: usersTable.createdAt,
+      })
       .from(usersTable)
-      .where(eq(usersTable.id, id))
+      .where(and(eq(usersTable.id, id), isNull(usersTable.deletedAt)))
       .limit(1);
 
     if (!user) {
@@ -1438,8 +1489,7 @@ router.get("/providers/:id", async (req, res) => {
       return;
     }
 
-    const safeUser = { ...user, passwordHash: undefined, twoFactorCodeHash: undefined, phone: undefined };
-    res.json({ user: safeUser, providerProfile: profile ?? null });
+    res.json({ user, providerProfile: profile ?? null });
   } catch (err) {
     console.error("Get provider error:", err);
     res.status(500).json({ error: "Xatolik yuz berdi" });

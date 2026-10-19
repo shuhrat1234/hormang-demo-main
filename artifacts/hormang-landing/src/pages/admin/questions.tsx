@@ -22,11 +22,9 @@ import {
   type CategoryConfig, type Question, type QuestionType, type QuestionOption,
 } from "@/lib/questionnaire-store";
 import { getCategory, getCategoryDisplayName } from "@/lib/categories";
-import { markAdminAuthenticated, translateTexts } from "@/lib/admin-client";
+import { adminLogin, markAdminAuthenticated, translateTexts } from "@/lib/admin-client";
 import { onStoreChange } from "@/lib/store-events";
 import logoImg from "/hormang-logo.png";
-
-const ADMIN_PASSWORD = "hormang2024";
 
 /* ─── Type meta ─────────────────────────────────────────────────── */
 interface TypeMeta { value: QuestionType; label: string; icon: React.ReactNode }
@@ -263,10 +261,16 @@ function PasswordGate({ onSuccess }: { onSuccess: () => void }) {
   const [pw, setPw] = useState("");
   const [show, setShow] = useState(false);
   const [error, setError] = useState(false);
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (pw === ADMIN_PASSWORD) { markAdminAuthenticated(); onSuccess(); }
-    else { setError(true); setTimeout(() => setError(false), 1500); }
+    try {
+      const res = await adminLogin(pw);
+      markAdminAuthenticated(res.token);
+      onSuccess();
+    } catch {
+      setError(true);
+      setTimeout(() => setError(false), 1500);
+    }
   }
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -1700,7 +1704,7 @@ export function QuestionsEmbedded() {
 
 /* ─── Main Admin Page (standalone /admin/questions route) ────────── */
 export default function AdminQuestionsPage() {
-  const [authed, setAuthed] = useState(false);
+  const [authed, setAuthed] = useState(() => Boolean(sessionStorage.getItem("hormang_admin_token")));
   const [categories, setCategories] = useState<CategoryConfig[]>(getCategories);
   const [commonQuestions, setCommonQuestions] = useState<Question[]>(getCommonQuestions);
   const [saved, setSaved] = useState(false);

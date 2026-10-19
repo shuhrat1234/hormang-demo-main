@@ -1,9 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(pnpm run *)",
-      "Bash(curl -s http://localhost:3000/api/wallet -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkNWUyNGY3MS02N2VkLTQ1NWItOGRmNC03ZjQ0YjZjN2EwNjQiLCJyb2xlIjoiYnV5ZXIiLCJlbWFpbCI6bnVsbCwicGhvbmUiOiIrOTk4OTAxMTEyMjMzIiwiaWF0IjoxNzgzNjI4Mzk2LCJleHAiOjE3ODM2MzE5OTZ9.y1_c1W_c8BKq_C8ESyi2CC3dOcY0eUNWhFOVCVcJsVA')",
-      "Bash(curl -s -X POST http://localhost:3000/api/wallet/orders -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkNWUyNGY3MS02N2VkLTQ1NWItOGRmNC03ZjQ0YjZjN2EwNjQiLCJyb2xlIjoiYnV5ZXIiLCJlbWFpbCI6bnVsbCwicGhvbmUiOiIrOTk4OTAxMTEyMjMzIiwiaWF0IjoxNzgzNjI4Mzk2LCJleHAiOjE3ODM2MzE5OTZ9.y1_c1W_c8BKq_C8ESyi2CC3dOcY0eUNWhFOVCVcJsVA' -H 'Content-Type: application/json' -d '{\"tierId\":\"36e737d7-4d33-4c9e-a427-1962a32c2a8d\",\"provider\":\"payme\"}' -w '\\\\nHTTP_STATUS:%{http_code}\\\\n')"
+      "Bash(pnpm run *)"
     ]
   }
 }

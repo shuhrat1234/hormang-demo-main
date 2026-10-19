@@ -64,8 +64,9 @@ interface TelegramUpdate {
   update_id: number;
   message?: {
     chat: { id: number };
+    from?: { id: number; first_name?: string; username?: string };
     text?: string;
-    contact?: { phone_number: string };
+    contact?: { phone_number: string; user_id?: number };
   };
 }
 
@@ -112,6 +113,14 @@ async function handleUpdate(update: TelegramUpdate): Promise<void> {
   const chatId = String(message.chat.id);
 
   if (message.contact) {
+    // S12: Verify contact user_id matches sender's Telegram ID to reject forwarded contact cards
+    if (!message.from || message.contact.user_id !== message.from.id) {
+      await sendTelegramMessage(
+        chatId,
+        "⚠️ Iltimos, faqat o'z kontakt kartangizni pastdagi '📱 Raqamni ulashish' tugmasi orqali yuboring."
+      );
+      return;
+    }
     await handleContactShare(chatId, message.contact.phone_number);
     return;
   }

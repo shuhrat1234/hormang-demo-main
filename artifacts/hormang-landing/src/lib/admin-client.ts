@@ -1,20 +1,46 @@
 /**
- * Shared HTTP client for admin write endpoints. There's no per-admin account
- * system (both admin entry points — the main /admin panel and the standalone
- * /admin/questions page — are single shared hardcoded passwords, checked
- * entirely client-side) so this doesn't attempt real per-admin auth either:
- * once either local password gate passes, it stashes the same fixed backend
- * key so writes are authenticated against the server's ADMIN_API_KEY.
+ * Shared HTTP client for admin endpoints.
+ * Authentication uses server-issued JWT tokens from POST /api/admin/login.
  */
 const RAW_API_BASE = import.meta.env.VITE_API_URL as string | undefined;
 const API_BASE = (RAW_API_BASE ?? "/api").replace(/\/$/, "");
 
-const ADMIN_API_KEY_STORAGE_KEY = "hormang_admin_api_key";
-/** Must match ADMIN_API_KEY on the server. */
-const ADMIN_API_KEY = "ourhormang123";
+const ADMIN_TOKEN_STORAGE_KEY = "hormang_admin_token";
 
-export function markAdminAuthenticated(): void {
-  sessionStorage.setItem(ADMIN_API_KEY_STORAGE_KEY, ADMIN_API_KEY);
+export function getAdminToken(): string | null {
+  return sessionStorage.getItem(ADMIN_TOKEN_STORAGE_KEY);
+}
+
+export function isAdminAuthenticated(): boolean {
+  return Boolean(getAdminToken());
+}
+
+export function markAdminAuthenticated(token?: string): void {
+  if (token) {
+    sessionStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, token);
+  }
+}
+
+export function adminLogout(): void {
+  sessionStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
+  sessionStorage.removeItem("hormang_admin_session_v1");
+}
+
+export async function adminLogin(password: string, username?: string): Promise<{ ok: boolean; token: string }> {
+  const res = await fetch(`${API_BASE}/admin/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
+  });
+
+  const data = await res.json().catch(() => null);
+  if (!res.ok || !data?.token) {
+    const errorMsg = data?.error || "Noto'g'ri login yoki parol";
+    throw new AdminApiError(errorMsg, res.status);
+  }
+
+  sessionStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, data.token);
+  return { ok: true, token: data.token };
 }
 
 export class AdminApiError extends Error {
@@ -29,13 +55,13 @@ interface AdminFetchOptions extends Omit<RequestInit, "body"> {
 
 export async function adminFetch<T>(path: string, options: AdminFetchOptions = {}): Promise<T> {
   const { body, headers, ...rest } = options;
-  const key = sessionStorage.getItem(ADMIN_API_KEY_STORAGE_KEY) ?? "";
+  const token = getAdminToken() ?? "";
 
   const res = await fetch(`${API_BASE}${path}`, {
     ...rest,
     headers: {
       "Content-Type": "application/json",
-      "x-admin-key": key,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(headers as Record<string, string> | undefined),
     },
     body: body !== undefined ? JSON.stringify(body) : undefined,
