@@ -129,7 +129,7 @@ function MessageBubble({
     const el = bubbleRef.current;
     if (!el) return;
     const { top } = el.getBoundingClientRect();
-    setPopupBelow(top < 140);
+    setPopupBelow(top < 220);
   }, [selected]);
 
   if (msg.sender === "system") {
@@ -166,36 +166,43 @@ function MessageBubble({
       initial={{ opacity: 0, y: 8, scale: 0.96 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.2 }}
-      className={`flex ${isCustomer ? "justify-end" : "justify-start"} ${isFirst ? "" : "mt-1"} relative`}
+      className={`flex ${isCustomer ? "justify-end" : "justify-start"} ${isFirst ? "" : "mt-1"} relative ${selected ? "z-30" : "z-0"}`}
+      style={{ zIndex: selected ? 30 : undefined }}
       onPointerDown={startPress}
       onPointerUp={endPress}
       onPointerLeave={endPress}
     >
       {selected && (
-        <div className={`absolute ${popupBelow ? "top-full mt-1" : "-top-28"} z-30 flex flex-col bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden min-w-[168px] ${isCustomer ? "right-0" : "left-0"}`}>
+        <div className={`absolute ${popupBelow ? "top-full mt-1.5" : "bottom-full mb-1.5"} z-40 flex flex-col bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden min-w-[168px] ${isCustomer ? "right-0" : "left-0"}`}>
           {canDeleteForEveryone && (
             <button
+              type="button"
               onPointerDown={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
               onClick={(e) => { e.stopPropagation(); onDeleteForEveryone?.(); }}
-              className="flex items-center gap-2.5 px-3.5 py-2.5 text-red-500 text-xs font-semibold hover:bg-red-50 transition-colors"
+              className="flex items-center gap-2.5 px-3.5 py-2.5 text-red-500 text-xs font-semibold hover:bg-red-50 active:bg-red-100 transition-colors w-full text-left"
             >
               <Trash2 className="w-3.5 h-3.5 flex-shrink-0" />
               {tt.deleteForEveryone}
             </button>
           )}
           <button
+            type="button"
             onPointerDown={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
             onClick={(e) => { e.stopPropagation(); onDeleteForMe?.(); }}
-            className={`flex items-center gap-2.5 px-3.5 py-2.5 text-gray-600 text-xs font-semibold hover:bg-gray-50 transition-colors ${canDeleteForEveryone ? "border-t border-gray-100" : ""}`}
+            className={`flex items-center gap-2.5 px-3.5 py-2.5 text-gray-600 text-xs font-semibold hover:bg-gray-50 active:bg-gray-100 transition-colors w-full text-left ${canDeleteForEveryone ? "border-t border-gray-100" : ""}`}
           >
             <EyeOff className="w-3.5 h-3.5 flex-shrink-0" />
             {tt.deleteForMe}
           </button>
           {msg.text && !msg.deletedForEveryone && (
             <button
+              type="button"
               onPointerDown={(e) => e.stopPropagation()}
+              onTouchStart={(e) => e.stopPropagation()}
               onClick={(e) => { e.stopPropagation(); onCopy?.(); }}
-              className="flex items-center gap-2.5 px-3.5 py-2.5 text-gray-600 text-xs font-semibold hover:bg-gray-50 transition-colors border-t border-gray-100"
+              className="flex items-center gap-2.5 px-3.5 py-2.5 text-gray-600 text-xs font-semibold hover:bg-gray-50 active:bg-gray-100 transition-colors border-t border-gray-100 w-full text-left"
             >
               <Copy className="w-3.5 h-3.5 flex-shrink-0" />
               {tt.copy}
@@ -603,9 +610,34 @@ export default function ChatPage() {
                     currentUserId={user?.id ?? ""}
                     onLongPress={msg.sender !== "system" ? () => setSelectedMsgId(msg.id) : undefined}
                     selected={selectedMsgId === msg.id}
-                    onDeleteForEveryone={() => { deleteMessageForEveryone(chat.id, msg.id).then(loadChat); setSelectedMsgId(null); }}
-                    onDeleteForMe={() => { deleteMessageForMe(chat.id, msg.id).then(loadChat); setSelectedMsgId(null); }}
-                    onCopy={() => { navigator.clipboard.writeText(msg.text); setSelectedMsgId(null); }}
+                    onDeleteForEveryone={() => {
+                      setChat((prev) => prev ? {
+                        ...prev,
+                        messages: prev.messages.map((m) =>
+                          m.id === msg.id ? { ...m, deletedForEveryone: true, text: "", attachment: undefined } : m
+                        ),
+                      } : prev);
+                      setSelectedMsgId(null);
+                      deleteMessageForEveryone(chat.id, msg.id).then(loadChat);
+                    }}
+                    onDeleteForMe={() => {
+                      const currentId = user?.id ?? "";
+                      setChat((prev) => prev ? {
+                        ...prev,
+                        messages: prev.messages.map((m) =>
+                          m.id === msg.id ? { ...m, deletedForUsers: [...(m.deletedForUsers ?? []), currentId] } : m
+                        ),
+                      } : prev);
+                      setSelectedMsgId(null);
+                      deleteMessageForMe(chat.id, msg.id).then(loadChat);
+                    }}
+                    onCopy={() => {
+                      if (msg.text) {
+                        navigator.clipboard.writeText(msg.text).catch(() => {});
+                        toast({ title: tt.copy });
+                      }
+                      setSelectedMsgId(null);
+                    }}
                   />
                 ))}
               </div>
