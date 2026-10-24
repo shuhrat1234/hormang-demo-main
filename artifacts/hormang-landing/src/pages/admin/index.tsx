@@ -1946,15 +1946,45 @@ function AdvancedUserDetailModal({
                       const signed = txSignedAmount(tx);
                       const isIn   = signed >= 0;
                       return (
-                        <div key={tx.id} className="bg-gray-50 rounded-xl p-3 flex items-center gap-3 border border-gray-100">
-                          <CategoryIcon categoryId={null} emoji={tx.categoryEmoji || "📋"} size={24} shape="square" className="flex-shrink-0" />
+                        <div key={tx.id} className="bg-gray-50 rounded-xl p-3 flex items-start gap-3 border border-gray-100">
+                          <span className="text-xl flex-shrink-0 mt-0.5">{tx.categoryEmoji || "🪙"}</span>
                           <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-gray-800 text-xs truncate">{tx.categoryName}</p>
-                            <p className="text-[10px] text-gray-400">{new Date(tx.createdAt).toLocaleDateString("uz-UZ")}</p>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className="font-bold text-gray-800 text-xs">{tx.categoryName}</p>
+                              {tx.type && (
+                                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${
+                                  tx.type === "purchase" ? "bg-emerald-50 text-emerald-700 border-emerald-100" :
+                                  tx.type === "spend" ? "bg-rose-50 text-rose-700 border-rose-100" :
+                                  tx.type === "referral" ? "bg-blue-50 text-blue-700 border-blue-100" :
+                                  tx.type === "refund" ? "bg-teal-50 text-teal-700 border-teal-100" :
+                                  tx.type === "profile_completion_reward" ? "bg-amber-50 text-amber-700 border-amber-100" :
+                                  "bg-violet-50 text-violet-700 border-violet-100"
+                                }`}>
+                                  {tx.type === "purchase" ? "Xarid" :
+                                   tx.type === "spend" ? "Taklif" :
+                                   tx.type === "referral" ? "Referral" :
+                                   tx.type === "refund" ? "Qaytarildi" :
+                                   tx.type === "profile_completion_reward" ? "Profil bonusi" : "Admin"}
+                                </span>
+                              )}
+                            </div>
+                            {tx.description && tx.description !== tx.categoryName && (
+                              <p className="text-[11px] text-gray-500 mt-0.5 line-clamp-1">{tx.description}</p>
+                            )}
+                            <div className="flex items-center gap-2 mt-1 text-[10px] text-gray-400">
+                              <span>{new Date(tx.createdAt).toLocaleDateString("uz-UZ")} {new Date(tx.createdAt).toLocaleTimeString("uz-Latn-UZ", { hour: "2-digit", minute: "2-digit" })}</span>
+                              {tx.offerId && <span className="font-mono text-gray-400">Taklif: {tx.offerId.slice(0, 8)}</span>}
+                              {tx.requestId && <span className="font-mono text-gray-400">So'rov: {tx.requestId.slice(0, 8)}</span>}
+                            </div>
                           </div>
-                          <span className={`font-extrabold text-sm flex-shrink-0 ${isIn ? "text-emerald-600" : "text-amber-600"}`}>
-                            {isIn ? "+" : "−"}{Math.abs(signed)} <TangaCoin size="xs" />
-                          </span>
+                          <div className="flex flex-col items-end flex-shrink-0">
+                            <span className={`font-black text-sm ${isIn ? "text-emerald-600" : "text-red-600"}`}>
+                              {isIn ? "+" : "−"}{Math.abs(signed)} <TangaCoin size="xs" />
+                            </span>
+                            {tx.priceSom ? (
+                              <span className="text-[10px] text-gray-400">{tx.priceSom.toLocaleString()} so'm</span>
+                            ) : null}
+                          </div>
                         </div>
                       );
                     })}
@@ -4003,20 +4033,55 @@ function backendWalletsToProviders(wallets: BackendWallet[], referrals: BackendR
     .sort((a, b) => b.balance - a.balance);
 }
 function backendTxsToLocal(txs: BackendTangaTx[]): TangaTx[] {
-  return txs.map((tx) => ({
-    id: tx.id,
-    userId: tx.userId,
-    offerId: "",
-    requestId: "",
-    categoryName: tx.type === "purchase" ? (tx.tierName ?? "Tanga xaridi") : "Admin sozlamasi",
-    categoryEmoji: tx.type === "purchase" ? "💳" : "🛡",
-    description: tx.description ?? "",
-    amount: tx.amount,
-    type: tx.type,
-    direction: tx.direction,
-    priceSom: tx.priceSom ?? undefined,
-    createdAt: tx.createdAt,
-  }));
+  return txs.map((tx) => {
+    let categoryName = tx.description || "";
+    let categoryEmoji = "🪙";
+
+    switch (tx.type) {
+      case "purchase":
+        categoryName = tx.tierName ? `${tx.tierName} xaridi` : (tx.description || "Tanga xaridi");
+        categoryEmoji = "💳";
+        break;
+      case "spend":
+        categoryName = tx.description ? `Taklif: ${tx.description}` : "Taklif yuborish";
+        categoryEmoji = "📤";
+        break;
+      case "referral":
+        categoryName = tx.description || "Referral mukofoti";
+        categoryEmoji = "🔗";
+        break;
+      case "refund":
+        categoryName = tx.description || "Qaytarilgan tanga";
+        categoryEmoji = "↩️";
+        break;
+      case "profile_completion_reward":
+        categoryName = tx.description || "Profil to'ldirish bonusi";
+        categoryEmoji = "🎖";
+        break;
+      case "admin_adjustment":
+        categoryName = tx.description ? `Admin: ${tx.description}` : "Admin sozlamasi";
+        categoryEmoji = "🛡";
+        break;
+      default:
+        categoryName = tx.description || "Tranzaksiya";
+        categoryEmoji = "🪙";
+    }
+
+    return {
+      id: tx.id,
+      userId: tx.userId,
+      offerId: tx.offerId ?? "",
+      requestId: tx.requestId ?? "",
+      categoryName,
+      categoryEmoji,
+      description: tx.description ?? "",
+      amount: tx.amount,
+      type: tx.type,
+      direction: tx.direction,
+      priceSom: tx.priceSom ?? undefined,
+      createdAt: tx.createdAt,
+    };
+  });
 }
 
 /* ─── Root MonetizationSection ───────────────────────────────────── */
@@ -4929,7 +4994,7 @@ function MonoPlans({ tiers, txs, reload }: { tiers: PricingTier[]; txs: TangaTx[
 /* ─── Transactions Tab ───────────────────────────────────────────── */
 function MonoTransactions({ txs, reload }: { txs: TangaTx[]; reload: () => void }) {
   const [search, setSearch]           = useState("");
-  const [filterType, setFilterType]   = useState<"all" | "spend" | "purchase" | "referral" | "admin_adjustment">("all");
+  const [filterType, setFilterType]   = useState<"all" | "spend" | "purchase" | "referral" | "refund" | "profile_completion_reward" | "admin_adjustment">("all");
   const [filterDate, setFilterDate]   = useState<"all" | "today" | "week" | "month">("all");
   const [viewOfferId, setViewOfferId] = useState<string | null>(null);
   const [allOffers, setAllOffers] = useState<BuyerOfferFull[]>([]);
@@ -4976,7 +5041,7 @@ function MonoTransactions({ txs, reload }: { txs: TangaTx[]; reload: () => void 
     if (filterDate === "month" && !tx.createdAt.startsWith(monthStr)) return false;
     if (search) {
       const q = search.toLowerCase();
-      if (!tx.userId.toLowerCase().includes(q) && !tx.categoryName.toLowerCase().includes(q) && !(tx.description ?? "").toLowerCase().includes(q)) return false;
+      if (!tx.userId.toLowerCase().includes(q) && !tx.categoryName.toLowerCase().includes(q) && !(tx.description ?? "").toLowerCase().includes(q) && !(tx.offerId ?? "").toLowerCase().includes(q) && !(tx.requestId ?? "").toLowerCase().includes(q)) return false;
     }
     return true;
   });
@@ -4985,9 +5050,9 @@ function MonoTransactions({ txs, reload }: { txs: TangaTx[]; reload: () => void 
   const totalOut = filtered.filter((t) => txSignedAmount(t) < 0).reduce((s, t) => s + txSignedAmount(t), 0);
 
   function exportCSV() {
-    const rows = [["Sana", "Foydalanuvchi", "Turi", "Miqdor", "Kategoriya", "Tavsif", "Offer ID"]];
+    const rows = [["Sana", "Foydalanuvchi", "Turi", "Miqdor", "Summa (so'm)", "Kategoriya", "Tavsif", "Taklif ID", "So'rov ID"]];
     filtered.forEach((tx) => {
-      rows.push([tx.createdAt, tx.userId, tx.type || "spend", String(txSignedAmount(tx)), tx.categoryName, tx.description ?? "", tx.offerId ?? ""]);
+      rows.push([tx.createdAt, tx.userId, tx.type || "spend", String(txSignedAmount(tx)), String(tx.priceSom ?? 0), tx.categoryName, tx.description ?? "", tx.offerId ?? "", tx.requestId ?? ""]);
     });
     const csv  = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -5018,14 +5083,16 @@ function MonoTransactions({ txs, reload }: { txs: TangaTx[]; reload: () => void 
       <div className="flex gap-2 flex-wrap">
         <div className="relative flex-1 min-w-[180px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Foydalanuvchi ID, kategoriya..." className={`${inputCls} w-full pl-9`} />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Foydalanuvchi ID, kategoriya, taklif..." className={`${inputCls} w-full pl-9`} />
         </div>
         <select value={filterType} onChange={(e) => setFilterType(e.target.value as typeof filterType)} className={inputCls}>
-          <option value="all">Barcha tur</option>
-          <option value="spend">Sarflandi</option>
-          <option value="purchase">Xarid</option>
-          <option value="referral">Referral</option>
-          <option value="admin_adjustment">Admin</option>
+          <option value="all">Barcha turlar</option>
+          <option value="purchase">💳 Xarid</option>
+          <option value="spend">📤 Sarflandi (Taklif)</option>
+          <option value="referral">🔗 Referral</option>
+          <option value="refund">↩️ Qaytarildi</option>
+          <option value="profile_completion_reward">🎖 Profil bonusi</option>
+          <option value="admin_adjustment">🛡 Admin sozlamasi</option>
         </select>
         <select value={filterDate} onChange={(e) => setFilterDate(e.target.value as typeof filterDate)} className={inputCls}>
           <option value="all">Barcha vaqt</option>
@@ -5052,7 +5119,7 @@ function MonoTransactions({ txs, reload }: { txs: TangaTx[]; reload: () => void 
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-red-50/40">
-                  {["Foydalanuvchi", "Turi", "Miqdor", "Manba", "Sana", "Amal"].map((h) => (
+                  {["Foydalanuvchi", "Turi", "Miqdor", "Manba / Tavsif", "Sana", "Amal"].map((h) => (
                     <th key={h} className="text-left text-[9px] font-bold text-red-400 uppercase tracking-widest px-3 py-3 whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -5078,7 +5145,7 @@ function MonoTransactions({ txs, reload }: { txs: TangaTx[]; reload: () => void 
                       </td>
                       <td className="px-3 py-3">
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${cls}`}>
-                          {tx.categoryEmoji || "📋"} {label}
+                          {tx.categoryEmoji || "🪙"} {label}
                         </span>
                       </td>
                       <td className="px-3 py-3">
@@ -5086,32 +5153,43 @@ function MonoTransactions({ txs, reload }: { txs: TangaTx[]; reload: () => void 
                           {signed >= 0 ? "+" : "−"}{Math.abs(signed)} 🪙
                         </span>
                       </td>
-                      <td className="px-3 py-3 max-w-[160px]">
-                        <p className="text-[11px] text-gray-600 truncate">{tx.categoryName}</p>
-                        {tx.source && (
-                          <span className={`inline-block text-[9px] font-bold px-1.5 py-0.5 rounded-full mt-0.5 ${
-                            tx.source === "discount_campaign" ? "bg-orange-50 text-orange-600" :
-                            tx.source === "referral_bonus"   ? "bg-blue-50 text-blue-600"   :
-                            tx.source === "admin_grant"      ? "bg-violet-50 text-violet-600" :
-                                                               "bg-gray-100 text-gray-500"
-                          }`}>
-                            {tx.source === "discount_campaign" ? "🔥 Aksiya" :
-                             tx.source === "referral_bonus"    ? "🔗 Referral" :
-                             tx.source === "admin_grant"       ? "👤 Admin" :
-                                                                 "Oddiy xarid"}
-                          </span>
+                      <td className="px-3 py-3 max-w-[220px]">
+                        <p className="text-[11px] font-bold text-gray-800 truncate">{tx.categoryName}</p>
+                        {tx.description && tx.description !== tx.categoryName && (
+                          <p className="text-[10px] text-gray-500 truncate mt-0.5">{tx.description}</p>
                         )}
+                        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                          {tx.priceSom ? (
+                            <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">
+                              {tx.priceSom.toLocaleString()} so'm
+                            </span>
+                          ) : null}
+                          {tx.offerId && (
+                            <span className="text-[9px] font-mono text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                              Taklif: {tx.offerId.slice(0, 8)}
+                            </span>
+                          )}
+                          {tx.requestId && (
+                            <span className="text-[9px] font-mono text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                              So'rov: {tx.requestId.slice(0, 8)}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-3 py-3 text-[11px] text-gray-500 whitespace-nowrap">
                         {new Date(tx.createdAt).toLocaleDateString("uz-UZ")}{" "}
                         {new Date(tx.createdAt).toLocaleTimeString("uz-Latn-UZ", { hour: "2-digit", minute: "2-digit" })}
                       </td>
                       <td className="px-3 py-3">
-                        {offer && (
+                        {offer ? (
                           <button onClick={() => setViewOfferId(offer.id)} className="px-2 py-1 rounded-lg bg-violet-50 text-violet-600 text-[10px] font-bold hover:bg-violet-100 border border-violet-100">
-                            Batafsil
+                            Taklifni ko'rish
                           </button>
-                        )}
+                        ) : tx.offerId ? (
+                          <span className="text-[9px] font-mono text-gray-400 bg-gray-50 px-1.5 py-1 rounded border border-gray-100">
+                            #{tx.offerId.slice(0, 6)}
+                          </span>
+                        ) : null}
                       </td>
                     </tr>
                   );

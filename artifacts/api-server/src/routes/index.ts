@@ -18,6 +18,7 @@ import requestsRouter from "./requests";
 import offersRouter from "./offers";
 import chatsRouter from "./chats";
 import reviewsRouter from "./reviews";
+import cookieConsentRouter from "./cookie-consent";
 
 const router: IRouter = Router();
 
@@ -34,6 +35,7 @@ router.use("/requests", requestsRouter);
 router.use("/offers", offersRouter);
 router.use("/chats", chatsRouter);
 router.use("/reviews", reviewsRouter);
+router.use("/cookie-consent", cookieConsentRouter);
 router.use("/admin/pricing-tiers", adminPricingRouter);
 router.use("/admin/wallets", adminWalletsRouter);
 router.use("/admin/users", adminUsersRouter);

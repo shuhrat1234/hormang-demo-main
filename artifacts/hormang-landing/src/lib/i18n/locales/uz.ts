@@ -1899,6 +1899,21 @@ export const uz = {
     selfRequest:    "Bu sizning o'z so'rovingiz",
     default:        "Taklif yuborib bo'lmaydi",
   },
+  cookieConsent: {
+    title: "Biz cookie fayllaridan foydalanamiz",
+    description: "Saytimiz tajribasini yaxshilash, xizmat sifatini oshirish va statistik ma'lumotlarni tahlil qilish uchun cookie fayllaridan foydalanamiz. Siz cookie sozlamalarini boshqarishingiz mumkin.",
+    acceptAll: "Barchasini qabul qilish",
+    essentialOnly: "Faqat zaruriylar",
+    customize: "Sozlash",
+    save: "Saqlash",
+    essentialTitle: "Zaruriy fayllar",
+    essentialDesc: "Saytning asosiy ishlashi va xavfsizligini ta'minlash uchun zarur (o'chirib bo'lmaydi).",
+    analyticsTitle: "Analitika va statistika",
+    analyticsDesc: "Saytdan qanday foydalanilayotganini tahlil qilish va xizmatlarimizni yaxshilash uchun.",
+    marketingTitle: "Marketing va tavsiyalar",
+    marketingDesc: "Sizga moslashtirilgan xizmatlar va foydali takliflarni ko'rsatish uchun.",
+    privacyLink: "Maxfiylik siyosati",
+  },
 };
 
 export type Dict = typeof uz;

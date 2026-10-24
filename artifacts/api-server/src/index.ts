@@ -16,6 +16,18 @@ import { pool } from "@workspace/db";
   try {
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS registration_source text;`);
     await pool.query(`ALTER TYPE payment_provider ADD VALUE IF NOT EXISTS 'free';`);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS cookie_consents (
+        id text PRIMARY KEY,
+        user_id text REFERENCES users(id) ON DELETE SET NULL,
+        consent_status text NOT NULL,
+        analytics boolean NOT NULL DEFAULT true,
+        marketing boolean NOT NULL DEFAULT true,
+        ip_address text,
+        user_agent text,
+        created_at timestamp NOT NULL DEFAULT now()
+      );
+    `);
   } catch (err) {
     console.error("Migration error ensureDbSchema:", err);
   }

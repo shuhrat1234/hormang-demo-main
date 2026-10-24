@@ -16,6 +16,7 @@ migrateOnce();
 void refreshCategoriesCache().then(() => refreshQuestionsCache());
 void refreshAnnouncementsCache();
 void refreshBadgesCache();
+import { CookieConsentBanner } from "@/components/cookie-banner";
 import NotFound from "@/pages/not-found";
 import LandingPage from "@/pages/landing";
 import RoleSelectPage from "@/pages/auth/role-select";
@@ -206,6 +207,7 @@ function App() {
             <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
               <AuthProvider>
                 <Router />
+                <CookieConsentBanner />
               </AuthProvider>
             </WouterRouter>
             <Toaster />

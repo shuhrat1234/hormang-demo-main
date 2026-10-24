@@ -20,3 +20,4 @@ export * from "./chats";
 export * from "./referrals";
 export * from "./reviews";
 export * from "./response_time_samples";
+export * from "./cookie_consents";

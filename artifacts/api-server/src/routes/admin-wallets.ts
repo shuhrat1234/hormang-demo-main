@@ -90,12 +90,17 @@ router.get("/referrals", async (_req, res) => {
 router.get("/:userId/transactions", async (req, res) => {
   try {
     const userId: string = String(req.params.userId);
-    const transactions = await db
-      .select()
+    const rows = await db
+      .select({
+        tx: tangaTransactionsTable,
+        tierName: pricingTiersTable.nameUz,
+      })
       .from(tangaTransactionsTable)
+      .leftJoin(paymentOrdersTable, eq(paymentOrdersTable.id, tangaTransactionsTable.orderId))
+      .leftJoin(pricingTiersTable, eq(pricingTiersTable.id, paymentOrdersTable.tierId))
       .where(eq(tangaTransactionsTable.userId, userId))
       .orderBy(desc(tangaTransactionsTable.createdAt));
-    res.json({ transactions });
+    res.json({ transactions: rows.map((r) => ({ ...r.tx, tierName: r.tierName })) });
   } catch (err) {
     console.error("Get admin wallet transactions error:", err);
     res.status(500).json({ error: "Xatolik yuz berdi" });
