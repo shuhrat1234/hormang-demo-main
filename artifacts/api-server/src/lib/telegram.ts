@@ -32,6 +32,10 @@ export async function sendTelegramMessage(
   });
 }
 
+function getAppUrl(): string {
+  return env.appBaseUrl || "https://hormang.co.uz";
+}
+
 /* ─── Keyboards ──────────────────────────────────────────────────────────── */
 
 const CONTACT_REQUEST_KEYBOARD = {
@@ -40,13 +44,35 @@ const CONTACT_REQUEST_KEYBOARD = {
   one_time_keyboard: true,
 };
 
-const QUICK_MENU_KEYBOARD = {
-  keyboard: [
-    [{ text: "💰 Balans" }, { text: "❓ FAQ" }],
-    [{ text: "💬 Taklif va shikoyatlar" }, { text: "🔗 Ilovani ochish" }],
-  ],
-  resize_keyboard: true,
-};
+function getQuickMenuKeyboard() {
+  return {
+    keyboard: [
+      [{ text: "🚀 Hormang Mini App", web_app: { url: getAppUrl() } }],
+      [{ text: "💰 Balans" }, { text: "❓ FAQ" }],
+      [{ text: "💬 Taklif va shikoyatlar" }],
+    ],
+    resize_keyboard: true,
+  };
+}
+
+function getStartInlineKeyboard() {
+  return {
+    inline_keyboard: [
+      [
+        {
+          text: "🚀 Hormang Mini Appni ochish",
+          web_app: { url: getAppUrl() },
+        },
+      ],
+      [
+        {
+          text: "🌐 Sayt orqali kirish",
+          url: getAppUrl(),
+        },
+      ],
+    ],
+  };
+}
 
 /* ─── Phone normalization ───────────────────────────────────────────────── */
 
@@ -82,7 +108,8 @@ async function handleContactShare(chatId: string, rawPhone: string): Promise<voi
   if (!user) {
     await sendTelegramMessage(
       chatId,
-      `Bu raqam Hormang'da topilmadi. Avval ilovada ro'yxatdan o'ting: ${env.appBaseUrl}`
+      `Bu raqam Hormang'da topilmadi. Avval ilovada ro'yxatdan o'ting: ${getAppUrl()}`,
+      { replyMarkup: getStartInlineKeyboard() }
     );
     return;
   }
@@ -96,14 +123,14 @@ async function handleContactShare(chatId: string, rawPhone: string): Promise<voi
     });
 
   await sendTelegramMessage(chatId, `✅ Hisobingiz ulandi! Xush kelibsiz, ${user.firstName}.`, {
-    replyMarkup: QUICK_MENU_KEYBOARD,
+    replyMarkup: getQuickMenuKeyboard(),
   });
 }
 
 async function handleBalanceRequest(chatId: string, userId: string): Promise<void> {
   const [wallet] = await db.select().from(walletsTable).where(eq(walletsTable.userId, userId)).limit(1);
   await sendTelegramMessage(chatId, `💰 Balansingiz: <b>${wallet?.balance ?? 0} Tanga</b>`, {
-    replyMarkup: QUICK_MENU_KEYBOARD,
+    replyMarkup: getQuickMenuKeyboard(),
   });
 }
 
@@ -128,18 +155,42 @@ async function handleUpdate(update: TelegramUpdate): Promise<void> {
   const text = message.text?.trim();
   if (!text) return;
 
-  if (text === "/start") {
+  const link = await findLinkByChatId(chatId);
+
+  if (text === "/start" || text === "/app") {
     await sendTelegramMessage(
       chatId,
-      "👋 Assalomu alaykum! Hormang botiga xush kelibsiz.\n\nHisobingizni ulash uchun telefon raqamingizni yuboring:",
-      { replyMarkup: CONTACT_REQUEST_KEYBOARD }
+      "👋 <b>Hormang</b> ga xush kelibsiz!\n\nO'zbekistonda ishonchli usta va mutaxassislarni topish uchun quyidagi tugmani bosib <b>Mini App</b>ni ochishingiz mumkin:\n\n📱 Hisobingizni ulash va bildirishnomalarni olish uchun telefon raqamingizni ham yuborishingiz mumkin.",
+      { replyMarkup: getStartInlineKeyboard() }
     );
+
+    if (!link) {
+      await sendTelegramMessage(
+        chatId,
+        "Hisobingizni bot bilan bog'lash va bildirishnomalarni olish uchun raqamingizni ulashing:",
+        { replyMarkup: CONTACT_REQUEST_KEYBOARD }
+      );
+    } else {
+      await sendTelegramMessage(chatId, "Bosh menyu:", {
+        replyMarkup: getQuickMenuKeyboard(),
+      });
+    }
     return;
   }
 
-  const link = await findLinkByChatId(chatId);
+  if (text === "🚀 Hormang Mini App" || text === "🔗 Ilovani ochish" || text === "🚀 Ilovani ochish") {
+    await sendTelegramMessage(chatId, "Hormang Mini Appni ochish:", {
+      replyMarkup: getStartInlineKeyboard(),
+    });
+    return;
+  }
+
   if (!link) {
-    await sendTelegramMessage(chatId, "Hisobingiz hali ulanmagan. /start buyrug'ini bosing va raqamingizni yuboring.");
+    await sendTelegramMessage(
+      chatId,
+      "Hisobingiz hali ulanmagan. Mini ilovadan foydalanishingiz yoki /start buyrug'i orqali raqamingizni yuborishingiz mumkin.",
+      { replyMarkup: getStartInlineKeyboard() }
+    );
     return;
   }
 
@@ -148,21 +199,19 @@ async function handleUpdate(update: TelegramUpdate): Promise<void> {
     case "💰 Balans":
       await handleBalanceRequest(chatId, link.userId);
       break;
+    case "/help":
     case "❓ FAQ":
-      await sendTelegramMessage(chatId, `❓ Ko'p so'raladigan savollar: ${env.appBaseUrl}/settings/help`, {
-        replyMarkup: QUICK_MENU_KEYBOARD,
+      await sendTelegramMessage(chatId, `❓ Ko'p so'raladigan savollar: ${getAppUrl()}/settings/help`, {
+        replyMarkup: getQuickMenuKeyboard(),
       });
       break;
     case "💬 Taklif va shikoyatlar":
-      await sendTelegramMessage(chatId, `💬 Taklif va shikoyatlaringizni shu yerda qoldiring: ${env.appBaseUrl}/feedback`, {
-        replyMarkup: QUICK_MENU_KEYBOARD,
+      await sendTelegramMessage(chatId, `💬 Taklif va shikoyatlaringizni shu yerda qoldiring: ${getAppUrl()}/feedback`, {
+        replyMarkup: getQuickMenuKeyboard(),
       });
       break;
-    case "🔗 Ilovani ochish":
-      await sendTelegramMessage(chatId, `🔗 Hormang ilovasi: ${env.appBaseUrl}`, { replyMarkup: QUICK_MENU_KEYBOARD });
-      break;
     default:
-      await sendTelegramMessage(chatId, "Quyidagi menyudan tanlang:", { replyMarkup: QUICK_MENU_KEYBOARD });
+      await sendTelegramMessage(chatId, "Quyidagi menyudan tanlang:", { replyMarkup: getQuickMenuKeyboard() });
   }
 }
 
@@ -176,10 +225,21 @@ export function startTelegramBot(): void {
   polling = true;
   void callTelegram("setMyCommands", {
     commands: [
-      { command: "start", description: "Hisobni ulash" },
+      { command: "start", description: "Botni ishga tushirish" },
+      { command: "app", description: "Hormang Mini Appni ochish" },
       { command: "balance", description: "Balansni ko'rish" },
+      { command: "help", description: "Yordam va qo'llanma" },
     ],
   }).catch((err) => console.error("Telegram setMyCommands error:", err));
+
+  void callTelegram("setChatMenuButton", {
+    menu_button: {
+      type: "web_app",
+      text: "Hormang",
+      web_app: { url: getAppUrl() },
+    },
+  }).catch((err) => console.error("Telegram setChatMenuButton error:", err));
+
   void pollLoop();
   console.log("Telegram bot polling started.");
 }
