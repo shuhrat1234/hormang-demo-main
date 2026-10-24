@@ -1148,7 +1148,7 @@ export const uz = {
     userLimitReached: "Sizning limitingiz tugadi",
     countdownLeft: "⏳ {{label}}",
     expired: "Muddati tugagan",
-    limitReachedBtn: "Limit tugdi",
+    limitReachedBtn: "Tugadi",
     buyBtn: "Sotib olish",
     claimFreeBtn: "Bepul olish",
     freeClaimSuccessTitle: "Tabriklaymiz!",
