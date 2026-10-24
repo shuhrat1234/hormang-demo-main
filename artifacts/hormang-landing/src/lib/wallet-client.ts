@@ -50,7 +50,7 @@ export interface WalletOrder {
   id: string;
   userId: string;
   tierId: string;
-  provider: "payme" | "click";
+  provider: "payme" | "click" | "free";
   amountSom: number;
   status: "pending" | "paid" | "cancelled" | "failed";
   providerTransactionId: string | null;
@@ -70,9 +70,15 @@ export function getWalletTransactions(): Promise<{ transactions: WalletTransacti
 
 export function createWalletOrder(
   tierId: string,
-  provider: "payme" | "click" = "payme"
-): Promise<{ orderId: string; checkoutUrl: string }> {
+  provider: "payme" | "click" | "free" = "payme"
+): Promise<{ orderId: string; checkoutUrl: string; free?: boolean; balance?: number }> {
   return apiFetch("/wallet/orders", { method: "POST", body: { tierId, provider } });
+}
+
+export function claimFreeTier(
+  tierId: string
+): Promise<{ ok: boolean; free: boolean; balance: number; credits: number; orderId: string }> {
+  return apiFetch("/wallet/claim-free", { method: "POST", body: { tierId } });
 }
 
 export function getWalletOrder(orderId: string): Promise<{ order: WalletOrder; tier: WalletTier }> {

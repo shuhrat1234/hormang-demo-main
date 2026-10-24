@@ -15,6 +15,7 @@ import { pool } from "@workspace/db";
 (async () => {
   try {
     await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS registration_source text;`);
+    await pool.query(`ALTER TYPE payment_provider ADD VALUE IF NOT EXISTS 'free';`);
   } catch (err) {
     console.error("Migration error ensureDbSchema:", err);
   }

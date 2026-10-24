@@ -2,7 +2,7 @@ import { pgTable, text, integer, timestamp, pgEnum } from "drizzle-orm/pg-core";
 import { usersTable } from "./users";
 import { pricingTiersTable } from "./pricing_tiers";
 
-export const paymentProviderEnum = pgEnum("payment_provider", ["payme", "click"]);
+export const paymentProviderEnum = pgEnum("payment_provider", ["payme", "click", "free"]);
 export const paymentOrderStatusEnum = pgEnum("payment_order_status", [
   "pending",
   "paid",

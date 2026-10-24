@@ -280,13 +280,131 @@ router.get("/referral-stats", requireAuth, async (req: AuthRequest, res) => {
   }
 });
 
+async function executeFreeClaim(tier: PricingTier, userId: string) {
+  // Check per-user limit
+  if (tier.perUserLimit != null) {
+    const paidOrders = await db
+      .select({ id: paymentOrdersTable.id })
+      .from(paymentOrdersTable)
+      .where(and(
+        eq(paymentOrdersTable.userId, userId),
+        eq(paymentOrdersTable.tierId, tier.id),
+        eq(paymentOrdersTable.status, "paid"),
+      ));
+    if (paidOrders.length >= tier.perUserLimit) {
+      throw new Error("Ushbu bepul tarifdan foydalanish limiti tugagan");
+    }
+  }
+
+  // Check sale limit
+  if (tier.saleLimit != null && tier.salePurchaseCount >= tier.saleLimit) {
+    throw new Error("Bepul tarif uchun ajratilgan o'rinlar tugagan");
+  }
+
+  const totalCredits = tier.credits + (tier.bonusTokens ?? 0);
+
+  return await db.transaction(async (tx) => {
+    // 1. Create order marked as paid with provider: "free"
+    const [order] = await tx
+      .insert(paymentOrdersTable)
+      .values({
+        userId,
+        tierId: tier.id,
+        provider: "free",
+        amountSom: 0,
+        status: "paid",
+        performedAt: new Date(),
+      })
+      .returning();
+
+    // 2. Update wallet balance
+    const [wallet] = await tx.select().from(walletsTable).where(eq(walletsTable.userId, userId)).limit(1);
+    const nextBalance = (wallet?.balance ?? 0) + totalCredits;
+    if (wallet) {
+      await tx.update(walletsTable).set({ balance: nextBalance, updatedAt: new Date() }).where(eq(walletsTable.userId, userId));
+    } else {
+      await tx.insert(walletsTable).values({ userId, balance: nextBalance });
+    }
+
+    // 3. Record transaction
+    await tx.insert(tangaTransactionsTable).values({
+      userId,
+      orderId: order.id,
+      type: "purchase",
+      direction: "in",
+      amount: totalCredits,
+      priceSom: 0,
+      description: tier.nameUz ? `${tier.nameUz} (Bepul)` : "Bepul tarif",
+    });
+
+    // 4. Increment sale count if it was a promotion
+    if (tier.salePrice === 0) {
+      await tx
+        .update(pricingTiersTable)
+        .set({ salePurchaseCount: sql`${pricingTiersTable.salePurchaseCount} + 1` })
+        .where(eq(pricingTiersTable.id, tier.id));
+    }
+
+    return { balance: nextBalance, credits: totalCredits, orderId: order.id };
+  });
+}
+
+// ─── POST /claim-free — claim a free tier immediately without payment gateway ─
+router.post("/claim-free", requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const { tierId } = req.body as { tierId?: string };
+    if (!tierId) {
+      res.status(400).json({ error: "tierId talab qilinadi" });
+      return;
+    }
+
+    const [tier] = await db.select().from(pricingTiersTable).where(eq(pricingTiersTable.id, tierId)).limit(1);
+    if (!tier || !tier.active) {
+      res.status(404).json({ error: "Tarif topilmadi" });
+      return;
+    }
+
+    const effectivePrice = await getEffectivePrice(tier, req.user!.id);
+    if (effectivePrice !== 0) {
+      res.status(400).json({ error: "Bu tarif bepul emas" });
+      return;
+    }
+
+    const result = await executeFreeClaim(tier, req.user!.id);
+    res.json({ ok: true, free: true, ...result });
+  } catch (err: any) {
+    console.error("Claim free tier error:", err);
+    res.status(400).json({ error: err.message || "Xatolik yuz berdi" });
+  }
+});
+
 // ─── POST /orders — start a purchase, returns the gateway checkout URL ─────
 router.post("/orders", requireAuth, async (req: AuthRequest, res) => {
   try {
     const { tierId, provider } = req.body as { tierId?: string; provider?: string };
 
-    if (!tierId || !provider) {
-      res.status(400).json({ error: "tierId va provider talab qilinadi" });
+    if (!tierId) {
+      res.status(400).json({ error: "tierId talab qilinadi" });
+      return;
+    }
+
+    const [tier] = await db.select().from(pricingTiersTable).where(eq(pricingTiersTable.id, tierId)).limit(1);
+    if (!tier || !tier.active) {
+      res.status(404).json({ error: "Tarif topilmadi" });
+      return;
+    }
+
+    const amountSom = await getEffectivePrice(tier, req.user!.id);
+
+    // Free tier: grant immediately without redirecting to Click/Payme
+    if (amountSom === 0 || provider === "free") {
+      const result = await executeFreeClaim(tier, req.user!.id);
+      res.status(200).json({ ok: true, free: true, checkoutUrl: "", ...result });
+      return;
+    }
+
+    if (!provider) {
+      res.status(400).json({ error: "provider talab qilinadi" });
       return;
     }
     if (provider !== "payme" && provider !== "click") {
@@ -302,14 +420,6 @@ router.post("/orders", requireAuth, async (req: AuthRequest, res) => {
       return;
     }
 
-    const [tier] = await db.select().from(pricingTiersTable).where(eq(pricingTiersTable.id, tierId)).limit(1);
-    if (!tier || !tier.active) {
-      res.status(404).json({ error: "Tarif topilmadi" });
-      return;
-    }
-
-    const amountSom = await getEffectivePrice(tier, req.user!.id);
-
     const [order] = await db
       .insert(paymentOrdersTable)
       .values({
@@ -323,9 +433,9 @@ router.post("/orders", requireAuth, async (req: AuthRequest, res) => {
 
     const checkoutUrl = provider === "click" ? buildClickCheckoutUrl(order) : buildPaymeCheckoutUrl(order);
     res.status(201).json({ orderId: order.id, checkoutUrl });
-  } catch (err) {
+  } catch (err: any) {
     console.error("Create order error:", err);
-    res.status(500).json({ error: "Xatolik yuz berdi" });
+    res.status(400).json({ error: err.message || "Xatolik yuz berdi" });
   }
 });
 

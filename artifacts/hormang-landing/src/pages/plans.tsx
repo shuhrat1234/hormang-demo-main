@@ -8,8 +8,23 @@ import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import logoImg from "/hormang-logo.png";
 import { getCachedTangaBalance, refreshTangaBalance } from "@/lib/wallet-balance";
-import { getWallet, createWalletOrder, type WalletTier } from "@/lib/wallet-client";
+import { getWallet, createWalletOrder, claimFreeTier, type WalletTier } from "@/lib/wallet-client";
 import { ApiError } from "@/lib/api-client";
+
+export function isTierSaleActive(tier: WalletTier): boolean {
+  const now = new Date();
+  return (
+    tier.salePrice != null &&
+    tier.salePrice < tier.priceSom &&
+    (!tier.startsAt || new Date(tier.startsAt) <= now) &&
+    (!tier.validUntil || new Date(tier.validUntil) > now) &&
+    (tier.saleLimit == null || tier.salePurchaseCount < tier.saleLimit)
+  );
+}
+
+export function getTierEffectivePrice(tier: WalletTier): number {
+  return isTierSaleActive(tier) && tier.salePrice != null ? tier.salePrice : tier.priceSom;
+}
 import { ReferralCard } from "@/components/referral-card";
 import { SUSPENDED_MESSAGE } from "@/lib/safety-store";
 import { useI18n } from "@/contexts/i18n-context";
@@ -105,17 +120,9 @@ function PlanCard({
   const isExpired = tier.validUntil ? new Date(tier.validUntil) <= new Date() : false;
   const totalTokens = tier.credits + tier.bonusTokens;
 
-  // Mirrors the admin panel's own sale-eligibility check (see admin/index.tsx's
-  // activeCampaigns filter) — the actual charged amount is still decided
-  // server-side in getEffectivePrice, this only controls what's displayed.
-  const now = new Date();
-  const saleActive =
-    tier.salePrice != null &&
-    tier.salePrice < tier.priceSom &&
-    (!tier.startsAt || new Date(tier.startsAt) <= now) &&
-    (!tier.validUntil || new Date(tier.validUntil) > now) &&
-    (tier.saleLimit == null || tier.salePurchaseCount < tier.saleLimit);
-  const displayPrice = saleActive ? tier.salePrice! : tier.priceSom;
+  const saleActive = isTierSaleActive(tier);
+  const displayPrice = getTierEffectivePrice(tier);
+  const isFree = displayPrice === 0;
   const savingsPercent = saleActive ? Math.round((1 - tier.salePrice! / tier.priceSom) * 100) : 0;
   const slotsLeft = saleActive && tier.saleLimit != null ? Math.max(0, tier.saleLimit - tier.salePurchaseCount) : null;
 
@@ -249,7 +256,7 @@ function PlanCard({
           className="w-full h-10 rounded-xl font-bold text-sm text-white transition-all active:scale-[.98] disabled:opacity-40 disabled:cursor-not-allowed shadow-sm mt-3 flex-shrink-0"
           style={{ background: disabled ? "#d1d5db" : GOLD_DARK }}
         >
-          {userLimitHit ? tt.limitReachedBtn : tt.buyBtn}
+          {userLimitHit ? tt.limitReachedBtn : isFree ? (tt.claimFreeBtn || "Bepul olish") : tt.buyBtn}
         </button>
       </div>
     </div>
@@ -349,7 +356,7 @@ export default function PlansPage() {
     return () => { cancelled = true; };
   }, [userId]);
 
-  async function handleBuy(tier: WalletTier, provider: "payme" | "click") {
+  async function handleClaimFree(tier: WalletTier) {
     if (!userId || buying) return;
     if (user?.suspended) {
       toast({ title: SUSPENDED_MESSAGE, variant: "destructive" });
@@ -357,8 +364,51 @@ export default function PlansPage() {
     }
     setBuying(tier.id);
     try {
-      const { checkoutUrl } = await createWalletOrder(tier.id, provider);
-      window.location.href = checkoutUrl;
+      const res = await claimFreeTier(tier.id);
+      setBought(tier.id);
+      await refreshTangaBalance(userId);
+      const w = await getWallet();
+      setTiers(w.tiers);
+      toast({
+        title: tt.freeClaimSuccessTitle ?? "Tabriklaymiz!",
+        description: tFormat(tt.freeClaimSuccessDescTpl ?? "{{n}} Tanga hisobingizga muvaffaqiyatli qo'shildi 🎉", {
+          n: res.credits || (tier.credits + (tier.bonusTokens ?? 0)),
+        }),
+      });
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : tt.errTierNotFound;
+      toast({ title: tt.purchaseFailedTitle, description: message, variant: "destructive" });
+    } finally {
+      setBuying(null);
+    }
+  }
+
+  async function handleBuy(tier: WalletTier, provider: "payme" | "click") {
+    if (!userId || buying) return;
+    if (user?.suspended) {
+      toast({ title: SUSPENDED_MESSAGE, variant: "destructive" });
+      return;
+    }
+    if (getTierEffectivePrice(tier) === 0) {
+      return handleClaimFree(tier);
+    }
+    setBuying(tier.id);
+    try {
+      const res = await createWalletOrder(tier.id, provider);
+      if (res.free || !res.checkoutUrl) {
+        setBought(tier.id);
+        await refreshTangaBalance(userId);
+        const w = await getWallet();
+        setTiers(w.tiers);
+        toast({
+          title: tt.freeClaimSuccessTitle ?? "Tabriklaymiz!",
+          description: tFormat(tt.freeClaimSuccessDescTpl ?? "{{n}} Tanga hisobingizga muvaffaqiyatli qo'shildi 🎉", {
+            n: tier.credits + (tier.bonusTokens ?? 0),
+          }),
+        });
+        return;
+      }
+      window.location.href = res.checkoutUrl;
     } catch (err) {
       setBuying(null);
       const message = err instanceof ApiError ? err.message : tt.errTierNotFound;
@@ -442,7 +492,13 @@ export default function PlansPage() {
                     tier={tier}
                     buying={buying === tier.id}
                     bought={bought === tier.id}
-                    onBuy={() => setPickerTier(tier)}
+                    onBuy={() => {
+                      if (getTierEffectivePrice(tier) === 0) {
+                        handleClaimFree(tier);
+                      } else {
+                        setPickerTier(tier);
+                      }
+                    }}
                   />
                 </motion.div>
               ))}
