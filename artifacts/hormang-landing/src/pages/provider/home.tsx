@@ -102,7 +102,7 @@ function CelebrationModal({ onClose }: { onClose: () => void }) {
       onClick={onClose}
     >
       <motion.div
-        initial={{ scale: 0.82, opacity: 0, y: 24 }}
+        initial={{ scale: 0.96, opacity: 0, y: 16 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.9, opacity: 0, y: 12 }}
         transition={{ type: "spring", stiffness: 300, damping: 22 }}
@@ -732,13 +732,13 @@ function RequestModalCard({ r, index: i, onRespond, onIgnore }: {
           <div className="flex gap-2">
             <button
               onClick={() => onIgnore(r.id)}
-              className="flex-1 h-9 rounded-xl border-2 border-red-100 bg-red-50 text-red-600 font-bold text-xs flex items-center justify-center gap-1 transition-all active:scale-95 hover:bg-red-100"
+              className="flex-1 h-9 rounded-xl border-2 border-red-100 bg-red-50 text-red-600 font-bold text-xs flex items-center justify-center gap-1 transition-[transform,background-color,border-color] duration-150 ease-out active:scale-95 hover:bg-red-100"
             >
               {t.providerHome.card.delete}
             </button>
             <button
               onClick={() => onRespond(r.id)}
-              className="flex-1 h-9 rounded-xl text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow-sm"
+              className="flex-1 h-9 rounded-xl text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-[transform,filter,box-shadow] duration-150 ease-out active:scale-95 shadow-sm"
               style={{ background: VIOLET }}
             >
               <Send className="w-3.5 h-3.5" />
@@ -941,7 +941,7 @@ function AvailableRequests() {
         <div className="grid grid-cols-3 gap-2 mb-4">
           <button
             onClick={() => setModal("all")}
-            className="bg-white rounded-2xl border border-gray-100 card-shadow p-3 text-center transition-all active:scale-95 hover:border-violet-200 hover:shadow-md"
+            className="bg-white rounded-2xl border border-gray-100 card-shadow p-3 text-center transition-[transform,border-color,box-shadow] duration-150 ease-out active:scale-95 hover:border-violet-200 hover:shadow-md"
           >
             <p className="text-xl font-black text-gray-900">{totalOpen}</p>
             <p className="text-[10px] font-bold text-gray-400 mt-0.5 leading-tight">{t.providerHome.available.statAll}</p>
@@ -949,7 +949,7 @@ function AvailableRequests() {
 
           <button
             onClick={() => setModal("new")}
-            className="bg-white rounded-2xl border border-gray-100 card-shadow p-3 text-center relative transition-all active:scale-95 hover:border-red-200 hover:shadow-md"
+            className="bg-white rounded-2xl border border-gray-100 card-shadow p-3 text-center relative transition-[transform,border-color,box-shadow] duration-150 ease-out active:scale-95 hover:border-red-200 hover:shadow-md"
           >
             {newCount > 0 && (
               <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-500" />
@@ -960,7 +960,7 @@ function AvailableRequests() {
 
           <button
             onClick={() => setModal("zero")}
-            className="bg-white rounded-2xl border border-gray-100 card-shadow p-3 text-center transition-all active:scale-95 hover:border-orange-200 hover:shadow-md"
+            className="bg-white rounded-2xl border border-gray-100 card-shadow p-3 text-center transition-[transform,border-color,box-shadow] duration-150 ease-out active:scale-95 hover:border-orange-200 hover:shadow-md"
           >
             <p className={`text-xl font-black ${zeroCount > 0 ? "text-red-500" : "text-gray-900"}`}>
               {zeroCount}
@@ -1107,7 +1107,7 @@ function AnnouncementModal({
           {annCtaText && ann.ctaLink && (
             <button
               onClick={() => { onClose(); setLocation(ann.ctaLink!); }}
-              className="w-full py-3 rounded-2xl font-bold text-sm text-white shadow-sm active:scale-95 transition-all"
+              className="w-full py-3 rounded-2xl font-bold text-sm text-white shadow-sm active:scale-95 transition-[transform,filter,box-shadow] duration-150 ease-out"
               style={{ background: VIOLET }}
             >
               {annCtaText}

@@ -106,10 +106,10 @@ function TxRow({
           )}  
         </div>
         <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-          <span className={`text-sm font-extrabold ${tone.amount}`}>
+          <span className={`text-sm font-extrabold tabular-nums ${tone.amount}`}>
             {tone.sign}{Math.abs(signed)}&nbsp;<TangaCoin size="sm" />
           </span>
-          <p className="text-[10px] text-gray-600 font-bold mt-0.1">
+          <p className="text-[10px] text-gray-600 font-bold mt-0.1 tabular-nums">
           &nbsp;{balanceAfter}&nbsp; <span className="text-[10px] text-gray-400 font-bold mt-0.1">{tt.tangaLabel} </span> 
           </p> 
           
@@ -214,7 +214,7 @@ export default function TangaHistoryPage() {
           <p className="text-[11px] font-bold uppercase tracking-widest text-violet-200 mb-1 relative">
             {tt.balanceLabel}
           </p>
-          <p className="text-4xl font-extrabold leading-tight relative">
+          <p className="text-4xl font-extrabold leading-tight relative tabular-nums">
             <TangaCoin size="xl" /> {balance}
           </p>
           <p className="text-violet-200 text-xs mt-2 relative">
@@ -228,7 +228,7 @@ export default function TangaHistoryPage() {
           <div className={`grid gap-3 ${totalEarnedReferral > 0 ? "grid-cols-3" : "grid-cols-2"}`}>
             <div className="bg-white rounded-2xl border border-gray-100 p-3.5 shadow-sm text-center">
               <p className="text-[10px] font-semibold text-gray-400 mb-1">{tt.totalSpent}</p>
-              <p className="font-extrabold text-amber-600 text-xl">
+              <p className="font-extrabold text-amber-600 text-xl tabular-nums">
                 {totalSpent}&nbsp;<TangaCoin size="sm" />
               </p>
             </div>
@@ -261,7 +261,7 @@ export default function TangaHistoryPage() {
             </p>
             <button
               onClick={() => setLocation("/provider/requests")}
-              className="mt-4 px-4 py-2 rounded-xl text-xs font-bold text-white shadow-sm transition-all active:scale-95"
+              className="mt-4 px-4 py-2 rounded-xl text-xs font-bold text-white shadow-sm transition-[transform,filter,box-shadow] duration-150 ease-out active:scale-95"
               style={{ background: VIOLET }}
             >
               {tt.viewRequestsBtn}

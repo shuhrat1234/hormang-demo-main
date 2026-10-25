@@ -32,6 +32,7 @@ import { OfferDetailModal } from "@/components/offer-detail-modal";
 import { RequestPreviewModal } from "@/components/request-preview-modal";
 import { isBlockedBy } from "@/lib/report-store";
 import { useToast } from "@/hooks/use-toast";
+import { triggerHaptic } from "@/lib/haptics";
 import { useAuth } from "@/contexts/auth-context";
 import logoImg from "/hormang-logo.png";
 import { PublicProfilePreviewModal } from "@/components/public-profile-preview-modal";
@@ -498,6 +499,7 @@ function ChatView({ chatId, onClose }: { chatId: string; onClose: () => void }) 
     const attachment = attachPreview ? { type: "image" as const, url: attachPreview } : undefined;
     setText("");
     setAttachPreview(null);
+    triggerHaptic("light");
     await sendProviderMessage(chat.id, "provider", text.trim(), attachment);
     loadChat();
   }
@@ -679,7 +681,7 @@ function ChatView({ chatId, onClose }: { chatId: string; onClose: () => void }) 
         <div className="fixed inset-0 z-20" onClick={() => setSelectedMsgId(null)} />
       )}
 
-      <div className="flex-1 overflow-y-auto min-h-0">
+      <div className="flex-1 overflow-y-auto min-h-0 scroll-contain">
         <div className="max-w-lg mx-auto w-full px-4 pt-4 pb-4">
           {grouped.length === 0 && (
             <div className="text-center py-8 text-gray-400 text-sm">
@@ -1086,7 +1088,7 @@ export default function ProviderChatsPage() {
   ];
 
   return (
-    <div className={openChatId ? "h-screen overflow-hidden bg-gray-50" : "min-h-screen bg-gray-50 pb-24"}>
+    <div className={openChatId ? "h-[100dvh] overflow-hidden bg-gray-50" : "min-h-[100dvh] bg-gray-50 pb-24"}>
       <div className="bg-white border-b border-gray-100 sticky top-0 z-10">
         <div className="max-w-lg mx-auto px-4 pt-3 pb-3">
           <div className="flex items-center gap-3 mb-3">

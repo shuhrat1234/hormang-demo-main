@@ -180,7 +180,7 @@ export function CookieConsentBanner() {
                     type="button"
                     disabled={submitting}
                     onClick={handleSaveCustom}
-                    className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-sm transition-all flex items-center gap-1.5"
+                    className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-sm transition-[transform,background-color,box-shadow] duration-150 ease-out active:scale-[0.97] flex items-center gap-1.5"
                   >
                     <Check className="w-3.5 h-3.5" />
                     {c.save}
@@ -199,7 +199,7 @@ export function CookieConsentBanner() {
                       type="button"
                       disabled={submitting}
                       onClick={handleAcceptAll}
-                      className="px-4 py-1.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-md shadow-amber-500/20 transition-all"
+                      className="px-4 py-1.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-md shadow-amber-500/20 transition-[transform,filter,box-shadow] duration-150 ease-out active:scale-[0.97]"
                     >
                       {c.acceptAll}
                     </button>

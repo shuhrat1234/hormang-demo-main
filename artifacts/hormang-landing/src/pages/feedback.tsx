@@ -246,7 +246,7 @@ function FeedbackFormDrawer({
             <div className="flex items-center gap-3 px-4 pb-3 pt-1 border-b border-gray-100 flex-shrink-0">
               <button
                 onClick={() => step === 0 ? handleClose() : setStep(s => s - 1)}
-                className="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600 active:scale-95 transition-all"
+                className="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600 active:scale-95 transition-[transform,background-color,color] duration-150 ease-out"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -261,7 +261,7 @@ function FeedbackFormDrawer({
               )}
               <button
                 onClick={handleClose}
-                className="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center text-gray-500 active:scale-95 transition-all"
+                className="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center text-gray-500 active:scale-95 transition-[transform,background-color,color] duration-150 ease-out"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -444,7 +444,7 @@ function FeedbackFormDrawer({
               <button
                 disabled={!canNext() || submitting}
                 onClick={() => { if (step < 3) setStep(s => s + 1); else handleSubmit(); }}
-                className="w-full py-3.5 rounded-2xl font-extrabold text-sm text-white flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg disabled:opacity-40 disabled:cursor-not-allowed"
+                className="w-full py-3.5 rounded-2xl font-extrabold text-sm text-white flex items-center justify-center gap-2 transition-[transform,opacity,filter] duration-150 ease-out active:scale-[0.97] shadow-lg disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{ background: BLUE_GRAD, boxShadow: "0 6px 20px rgba(37,99,235,0.3)" }}
               >
                 {submitting ? (

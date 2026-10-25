@@ -172,7 +172,7 @@ export function CompletionModal({ onConfirm, onClose }: CompletionModalProps) {
             <button
               onClick={handleConfirm}
               disabled={busy}
-              className="flex-1 h-12 rounded-2xl text-sm font-bold text-white shadow-sm transition-all active:scale-[.98] disabled:opacity-60"
+              className="flex-1 h-12 rounded-2xl text-sm font-bold text-white shadow-sm transition-[transform,opacity,filter] duration-150 ease-out active:scale-[0.97] disabled:opacity-60"
               style={{ background: "linear-gradient(135deg, #10b981 0%, #059669 100%)" }}
             >
               {tt.confirm}

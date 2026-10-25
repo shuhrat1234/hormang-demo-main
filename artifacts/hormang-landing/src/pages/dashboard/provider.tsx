@@ -131,7 +131,7 @@ export default function ProviderDashboard() {
       </header>
 
       <main className="max-w-lg mx-auto px-4 py-6 space-y-4">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}>
 
           <div className="bg-white rounded-2xl border border-gray-100 card-shadow p-5">
             <div className="flex items-start gap-4 mb-4">

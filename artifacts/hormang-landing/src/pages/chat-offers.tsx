@@ -120,9 +120,9 @@ function OfferCard({ offer, req, index, anyAccepted, onChanged }: {
       <motion.div
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: index * 0.05, duration: 0.35 }}
+        transition={{ delay: Math.min(index * 0.03, 0.24), duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
         onClick={() => setShowDetail(true)}
-        className={`bg-white rounded-2xl border overflow-hidden transition-all duration-200 cursor-pointer ${
+        className={`bg-white rounded-2xl border overflow-hidden transition-[border-color,box-shadow,opacity] duration-150 ease-out cursor-pointer ${
           isAccepted ? "border-emerald-200"
           : isRejected ? "border-gray-100 opacity-55"
           : anyAccepted ? "border-gray-100 opacity-60"
@@ -355,9 +355,9 @@ function ChatRow({ chat, offer, req, index }: { chat: Chat; offer: Offer | undef
     <motion.button
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05, duration: 0.3 }}
+      transition={{ delay: Math.min(index * 0.03, 0.24), duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
       onClick={() => setLocation(`/chat/${chat.id}`)}
-      className={`w-full bg-white rounded-2xl border p-4 flex items-start gap-3 hover:shadow-sm transition-all duration-200 text-left ${borderCls}`}
+      className={`w-full bg-white rounded-2xl border p-4 flex items-start gap-3 hover:shadow-sm transition-[border-color,box-shadow,transform] duration-150 ease-out active:scale-[0.98] text-left ${borderCls}`}
     >
       {providerPhoto && !imgError ? (
         <img
@@ -500,7 +500,7 @@ export default function ChatOffersPage() {
         <div className="max-w-lg mx-auto px-4 pb-3 flex gap-2">
           <button
             onClick={() => switchTab("offers")}
-            className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+            className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-[color,background-color,box-shadow,transform] duration-150 ease-out active:scale-[0.98] ${
               tab === "offers"
                 ? "bg-blue-600 text-white shadow-sm"
                 : "bg-gray-100 text-gray-500 hover:bg-gray-200"
@@ -518,7 +518,7 @@ export default function ChatOffersPage() {
           </button>
           <button
             onClick={() => switchTab("chats")}
-            className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+            className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-[color,background-color,box-shadow,transform] duration-150 ease-out active:scale-[0.98] ${
               tab === "chats"
                 ? "bg-blue-600 text-white shadow-sm"
                 : "bg-gray-100 text-gray-500 hover:bg-gray-200"

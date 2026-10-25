@@ -100,7 +100,7 @@ export default function SettingsHome() {
       <button
         onClick={handleLogout}
         disabled={loggingOut}
-        className="w-full bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-900/50 rounded-2xl px-4 py-3.5 flex items-center justify-center gap-2 font-bold text-sm hover:bg-red-100 dark:hover:bg-red-950/60 active:scale-[0.98] transition-all disabled:opacity-50"
+        className="w-full bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-900/50 rounded-2xl px-4 py-3.5 flex items-center justify-center gap-2 font-bold text-sm hover:bg-red-100 dark:hover:bg-red-950/60 active:scale-[0.97] transition-[transform,background-color,border-color] duration-150 ease-out disabled:opacity-50"
       >
         <LogOut className="w-4 h-4" />
         {t.settings.logout}

@@ -502,7 +502,7 @@ function RequestListCard({ r, index: i, isUnseen, providerId, onOpenOfferForm, o
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: i * 0.04 }}
+      transition={{ delay: Math.min(i * 0.03, 0.24), duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
       className={`bg-white rounded-2xl border card-shadow overflow-hidden ${
         isUnseen ? "border-violet-100" : "border-gray-100"
       }`}
@@ -597,9 +597,9 @@ function RespondedRow({ r, index: i, providerId, onOpenDetail }: {
     <motion.div
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: i * 0.04 }}
+      transition={{ delay: Math.min(i * 0.03, 0.24), duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
       onClick={() => offer && onOpenDetail(r, offer)}
-      className={`bg-white rounded-2xl border overflow-hidden cursor-pointer active:scale-[.99] transition-all ${cardBorder}`}
+      className={`bg-white rounded-2xl border overflow-hidden cursor-pointer active:scale-[0.98] transition-[border-color,box-shadow,transform] duration-150 ease-out ${cardBorder}`}
     >
       <div className="px-4 py-3 flex items-center gap-3">
         <CategoryIcon categoryId={r.categoryId} emoji={r.emoji} size={36} shape="square" className="flex-shrink-0" />
@@ -1081,7 +1081,7 @@ export default function ProviderRequestsPage() {
                   key={r.id}
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.04 }}
+                  transition={{ delay: Math.min(i * 0.03, 0.24), duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
                   className="bg-white rounded-2xl border border-gray-100 overflow-hidden"
                 >
                   <div className="px-4 py-3 flex items-center gap-3">

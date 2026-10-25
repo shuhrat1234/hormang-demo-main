@@ -92,7 +92,7 @@ function AnnouncementModal({ ann, onClose }: { ann: Announcement; onClose: () =>
           {annCtaText && ann.ctaLink && (
             <button
               onClick={() => { onClose(); setLocation(ann.ctaLink!); }}
-              className="w-full py-3 rounded-2xl font-bold text-sm text-white shadow-sm active:scale-95 transition-all"
+              className="w-full py-3 rounded-2xl font-bold text-sm text-white shadow-sm active:scale-95 transition-[transform,opacity] duration-150 ease-out select-none cursor-pointer"
               style={{ background: BLUE }}
             >
               {annCtaText}
@@ -452,7 +452,7 @@ export default function CustomerHomePage() {
             {/* Categories — special card with RollingCategories on the right */}
             <button
               onClick={() => setLocation("/questionnaire")}
-              className="flex-1 bg-white border border-gray-100 card-shadow rounded-2xl p-3.5 text-left hover:border-blue-200 active:scale-[0.97] transition-all flex items-center justify-between gap-2"
+              className="flex-1 bg-white border border-gray-100 card-shadow rounded-2xl p-3.5 text-left hover:border-blue-200 active:scale-[0.97] transition-[transform,border-color,box-shadow] duration-150 ease-out flex items-center justify-between gap-2"
             >
               <div className="min-w-0">
                 <LayoutGrid className="w-4 h-4 text-blue-600 mb-1.5" />
@@ -471,7 +471,7 @@ export default function CustomerHomePage() {
               <button
                 key={a.label}
                 onClick={() => setLocation(a.path)}
-                className="flex-1 bg-white border border-gray-100 card-shadow rounded-2xl p-3.5 text-left hover:border-blue-200 active:scale-[0.97] transition-all"
+                className="flex-1 bg-white border border-gray-100 card-shadow rounded-2xl p-3.5 text-left hover:border-blue-200 active:scale-[0.97] transition-[transform,border-color,box-shadow] duration-150 ease-out"
               >
                 <a.icon className="w-4 h-4 text-blue-600 mb-2" />
                 <p className="font-bold text-gray-900 text-xs leading-tight">{a.label}</p>
@@ -521,7 +521,7 @@ export default function CustomerHomePage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.05 }}
                     onClick={() => setLocation("/my-requests")}
-                    className="w-full bg-white rounded-2xl border border-gray-100 card-shadow p-4 text-left hover:border-blue-200 active:scale-[0.99] transition-all"
+                    className="w-full bg-white rounded-2xl border border-gray-100 card-shadow p-4 text-left hover:border-blue-200 active:scale-[0.98] transition-[border-color,box-shadow,transform] duration-150 ease-out"
                   >
                     <div className="flex items-center gap-3">
                       <CategoryIcon categoryId={req.categoryId} emoji={req.emoji} size={40} shape="square" className="flex-shrink-0" />
@@ -581,7 +581,7 @@ export default function CustomerHomePage() {
                     <button
                       key={offer.id}
                       onClick={() => setLocation("/chat-offers")}
-                      className="flex-shrink-0 w-40 bg-white rounded-2xl border border-gray-100 card-shadow p-3.5 text-left hover:border-blue-200 active:scale-[0.98] transition-all"
+                      className="flex-shrink-0 w-40 bg-white rounded-2xl border border-gray-100 card-shadow p-3.5 text-left hover:border-blue-200 active:scale-[0.98] transition-[border-color,box-shadow,transform] duration-150 ease-out"
                     >
                       {offer.masterPhotoUrl || getLocalProfile(offer.masterId).photoUrl ? (
                         <img
@@ -643,7 +643,7 @@ export default function CustomerHomePage() {
                     <button
                       key={chat.id}
                       onClick={() => setLocation(`/chat/${chat.id}`)}
-                      className="w-full bg-white rounded-2xl border border-gray-100 card-shadow p-3.5 text-left hover:border-blue-200 active:scale-[0.99] transition-all"
+                      className="w-full bg-white rounded-2xl border border-gray-100 card-shadow p-3.5 text-left hover:border-blue-200 active:scale-[0.98] transition-[border-color,box-shadow,transform] duration-150 ease-out"
                     >
                       <div className="flex items-center gap-3">
                         <div

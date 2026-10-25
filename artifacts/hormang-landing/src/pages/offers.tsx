@@ -90,7 +90,7 @@ function OfferCard({ offer, req, index, anyAccepted, onChanged }: { offer: Offer
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: index * 0.06, duration: 0.4 }}
+        transition={{ delay: Math.min(index * 0.04, 0.2), duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
         onClick={() => setShowDetail(true)}
         className={`bg-white rounded-2xl border overflow-hidden transition-all duration-200 cursor-pointer ${
           isAccepted ? "border-emerald-200 ring-1 ring-emerald-100"
@@ -149,7 +149,7 @@ function OfferCard({ offer, req, index, anyAccepted, onChanged }: { offer: Offer
             </div>
             {/* Price */}
             <div className="flex-shrink-0 text-right">
-              <p className="font-extrabold text-base text-blue-600">
+              <p className="font-extrabold text-base text-blue-600 tabular-nums">
                 {offer.price.toLocaleString() + " " + tt.sumSuffix}
               </p>
             </div>

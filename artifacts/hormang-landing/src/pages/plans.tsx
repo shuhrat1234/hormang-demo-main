@@ -62,10 +62,10 @@ export function TangaChip({ userId, onClick }: { userId: string; onClick?: () =>
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 active:scale-95 transition-all"
+      className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 active:scale-95 transition-[transform,background-color] duration-150 ease-out select-none cursor-pointer"
     >
       <CoinIcon size={16} />
-      <span className="text-xs font-bold text-amber-700 leading-none">{balance}</span>
+      <span className="text-xs font-bold text-amber-700 leading-none tabular-nums">{balance}</span>
     </button>
   );
 }

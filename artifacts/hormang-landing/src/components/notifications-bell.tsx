@@ -93,7 +93,7 @@ export function NotificationsBell({
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="relative p-2 rounded-xl text-gray-500 hover:text-gray-700 hover:bg-gray-100 active:scale-95 transition-all"
+        className="relative p-2 rounded-xl text-gray-500 hover:text-gray-700 hover:bg-gray-100 active:scale-95 transition-[transform,background-color,color] duration-150 ease-out"
         aria-label="Bildirishnomalar"
         title={locale === "ru" ? "Уведомления" : locale === "en" ? "Notifications" : "Bildirishnomalar"}
       >

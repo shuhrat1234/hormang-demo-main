@@ -7,6 +7,7 @@ import { getOffersByCustomer, getTotalCustomerUnread } from "@/lib/requests-stor
 import { getTotalUnread, getUnseenRequests } from "@/lib/provider-store";
 import { getLocalProfile } from "@/lib/local-profile";
 import { useToast } from "@/hooks/use-toast";
+import { triggerHaptic } from "@/lib/haptics";
 
 export function BottomNav() {
   const [location, setLocation] = useLocation();
@@ -102,7 +103,7 @@ export function BottomNav() {
   const activeColor = isProvider ? "#7C3AED" : "#2563EB";
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-[hsl(var(--surface))] border-t border-gray-100 dark:border-[hsl(var(--hairline))] shadow-[0_-2px_12px_rgba(0,0,0,0.05)] dark:shadow-[0_-2px_12px_rgba(0,0,0,0.4)]">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/85 dark:bg-[hsl(var(--surface))]/85 backdrop-blur-xl border-t border-gray-100/80 dark:border-[hsl(var(--hairline))] shadow-[0_-2px_16px_rgba(0,0,0,0.04)] dark:shadow-[0_-2px_16px_rgba(0,0,0,0.4)] pb-[env(safe-area-inset-bottom,0px)]">
       <div className="max-w-lg mx-auto flex">
         {tabs.map((tab) => {
           const active = isActive(tab.href);
@@ -114,12 +115,14 @@ export function BottomNav() {
               key={tab.label}
               onClick={() => {
                 if (disabled) {
+                  triggerHaptic("error");
                   toast({ title: t.common.soon, description: t.bottomNav.smartSoon });
                   return;
                 }
+                triggerHaptic("light");
                 setLocation(tab.href);
               }}
-              className={`flex-1 flex flex-col items-center justify-center py-2.5 gap-1 relative transition-colors ${
+              className={`flex-1 flex flex-col items-center justify-center py-2.5 gap-1 relative transition-[color,transform] duration-150 active:scale-95 select-none ${
                 disabled
                   ? "text-gray-300 dark:text-gray-600 cursor-default"
                   : active
@@ -129,7 +132,7 @@ export function BottomNav() {
               style={{ "--tab-color": activeColor } as React.CSSProperties}
             >
               <div className="relative">
-                <tab.icon className={`w-5 h-5 transition-all ${active && !disabled ? "scale-110" : ""}`} />
+                <tab.icon className={`w-5 h-5 transition-transform duration-150 ease-out ${active && !disabled ? "scale-110" : ""}`} />
                 {badge > 0 && (
                   <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
                     {badge > 9 ? "9+" : badge}

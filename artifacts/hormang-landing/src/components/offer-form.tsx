@@ -18,6 +18,7 @@ import {
   DollarSign,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { triggerHaptic } from "@/lib/haptics";
 import { useAuth } from "@/contexts/auth-context";
 import { getLocalProfile } from "@/lib/local-profile";
 import {
@@ -181,6 +182,7 @@ export function OfferForm({ request, onClose, onSubmitted }: Props) {
     if (!hasEnoughTanga) return;
     if (!validate()) return;
     if (user?.suspended) {
+      triggerHaptic("error");
       toast({ title: SUSPENDED_MESSAGE, variant: "destructive" });
       return;
     }
@@ -225,6 +227,7 @@ export function OfferForm({ request, onClose, onSubmitted }: Props) {
             : code === "insufficient_balance"
               ? tFormat(t.offerForm.toasts.insufficientDescTpl, { n: offerCost })
               : t.offerForm.toasts.photoSize;
+      triggerHaptic("error");
       toast({ title: t.offerForm.toasts.errorTitle, description, variant: "destructive" });
       return;
     }
@@ -234,6 +237,7 @@ export function OfferForm({ request, onClose, onSubmitted }: Props) {
 
     setTimeout(() => {
       setSubmitting(false);
+      triggerHaptic("success");
       toast({ title: tFormat(t.offerForm.toasts.sentTpl, { n: offerCost }) });
       onSubmitted();
     }, 500);
@@ -276,7 +280,7 @@ export function OfferForm({ request, onClose, onSubmitted }: Props) {
           </div>
 
           {/* Scrollable body */}
-          <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
+          <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4 scroll-contain">
 
             {/* ── Offer Limit / Lock Banner ── */}
             {blockedReason && (
@@ -416,7 +420,7 @@ export function OfferForm({ request, onClose, onSubmitted }: Props) {
                     if (errors.price) setErrors((prev) => ({ ...prev, price: "" }));
                   }}
                   placeholder={t.offerForm.pricePlaceholder}
-                  className="flex-1 bg-transparent text-sm font-bold text-gray-900 placeholder:text-gray-300 focus:outline-none"
+                  className="flex-1 bg-transparent text-sm font-bold text-gray-900 placeholder:text-gray-300 focus:outline-none tabular-nums"
                 />
                 <span className="text-xs font-bold text-gray-400 ml-2">{t.offerForm.sumSuffix}</span>
               </div>

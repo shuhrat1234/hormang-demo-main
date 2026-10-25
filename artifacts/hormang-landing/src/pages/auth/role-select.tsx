@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
-import { useLocation, useSearch } from "wouter";
+import { useLocation, useSearch, Link } from "wouter";
+import { AuthBackButton } from "@/components/auth-back-button";
 import { ShoppingBag, Briefcase, ArrowRight } from "lucide-react";
 import { useI18n } from "@/contexts/i18n-context";
 
@@ -23,7 +24,8 @@ export default function RoleSelectPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 pt-16 sm:pt-4 relative">
+      <AuthBackButton />
       <motion.div
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
@@ -32,9 +34,10 @@ export default function RoleSelectPage() {
       >
         <div className="text-center mb-10">
           <motion.div
-            className="inline-flex items-center gap-2 mb-6 text-white text-sm font-bold px-4 py-2 rounded-full shadow-lg"
+            className="inline-flex items-center gap-2 mb-6 text-white text-sm font-bold px-4 py-2 rounded-full shadow-lg cursor-pointer hover:opacity-90 transition-opacity"
+            onClick={() => setLocation("/")}
             style={{ background: "var(--brand-gradient)" }}
-            initial={{ scale: 0.8, opacity: 0 }}
+            initial={{ scale: 0.96, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.1 }}
           >

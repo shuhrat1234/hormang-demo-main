@@ -31,7 +31,10 @@ function LanguageSwitcher({ variant = "desktop" }: { variant?: "desktop" | "mobi
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-sm font-semibold text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors">
+        <button
+          aria-label="Select language"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors min-h-[40px] cursor-pointer"
+        >
           <Globe className="w-4 h-4" />
           <span className="uppercase">{locale}</span>
         </button>
@@ -52,13 +55,27 @@ function LanguageSwitcher({ variant = "desktop" }: { variant?: "desktop" | "mobi
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState<string>("");
   const { user, logout } = useAuth();
   const { t } = useI18n();
   const [, setLocation] = useLocation();
   const [logoHovered, setLogoHovered] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 16);
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 16);
+      for (const id of ["categories", "how-it-works", "pricing"]) {
+        const el = document.getElementById(id);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          if (rect.top <= 160 && rect.bottom >= 160) {
+            setActiveSection(`#${id}`);
+            return;
+          }
+        }
+      }
+      setActiveSection("");
+    };
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
@@ -79,7 +96,7 @@ export function Navbar() {
       initial={{ y: -64, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      className={`fixed top-0 left-0 right-0 z-50 transition-[background-color,box-shadow,border-color,padding] duration-200 ease-out ${
         isScrolled
           ? "bg-white/95 backdrop-blur-md shadow-[0_1px_0_0_rgba(0,0,0,0.06)] py-3"
           : "bg-transparent py-5"
@@ -118,7 +135,9 @@ export function Navbar() {
                 >
                   <a
                     href={link.href}
-                    className="text-sm font-semibold text-gray-500 hover:text-gray-900 transition-colors duration-200"
+                    className={`text-sm font-semibold transition-colors duration-200 ${
+                      activeSection === link.href ? "text-blue-600 font-bold" : "text-gray-500 hover:text-gray-900"
+                    }`}
                   >
                     {link.name}
                   </a>
@@ -169,7 +188,7 @@ export function Navbar() {
                   </motion.div>
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.38 }}>
                     <Button
-                      className="font-semibold bg-blue-600 hover:bg-blue-700 hover:brightness-105 active:scale-[0.98] shadow-sm transition-all gap-1.5"
+                      className="font-semibold bg-blue-600 hover:bg-blue-700 hover:brightness-105 shadow-sm gap-1.5"
                       onClick={() => setLocation("/auth/role")}
                     >
                       {t.navbar.signup}
@@ -183,7 +202,8 @@ export function Navbar() {
 
           {/* Mobile menu toggle */}
           <button
-            className="md:hidden p-2 -mr-2 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
+            aria-label="Toggle navigation menu"
+            className="md:hidden p-2.5 -mr-2 text-gray-700 rounded-xl hover:bg-gray-100 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center cursor-pointer"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
             <AnimatePresence mode="wait" initial={false}>
@@ -249,13 +269,13 @@ export function Navbar() {
                   <>
                     <Button
                       variant="outline"
-                      className="w-full font-semibold bg-white border-gray-200 text-gray-700 hover:text-blue-600 hover:bg-blue-50/80 hover:border-blue-300 transition-all"
+                      className="w-full font-semibold bg-white border-gray-200 text-gray-700 hover:text-blue-600 hover:bg-blue-50/80 hover:border-blue-300"
                       onClick={() => { setMobileMenuOpen(false); setLocation("/auth/login"); }}
                     >
                       {t.navbar.login}
                     </Button>
                     <Button
-                      className="w-full font-semibold bg-blue-600 hover:bg-blue-700 hover:brightness-105 active:scale-[0.98] transition-all"
+                      className="w-full font-semibold bg-blue-600 hover:bg-blue-700 hover:brightness-105"
                       onClick={() => { setMobileMenuOpen(false); setLocation("/auth/role"); }}
                     >
                       {t.navbar.signup}

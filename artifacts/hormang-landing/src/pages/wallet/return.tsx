@@ -116,7 +116,7 @@ export default function WalletReturnPage() {
         )}
         <button
           onClick={() => setLocation("/plans")}
-          className="mt-6 w-full h-11 rounded-xl font-bold text-sm text-white active:scale-[.98] transition-all"
+          className="mt-6 w-full h-11 rounded-xl font-bold text-sm text-white active:scale-[0.97] transition-[transform,filter,box-shadow] duration-150 ease-out"
           style={{ background: "linear-gradient(135deg, #f59e0b 0%, #92400e 100%)" }}
         >
           {tt.backBtn}

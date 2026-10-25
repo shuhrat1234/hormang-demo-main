@@ -290,7 +290,7 @@ export function ReportModal({
             <button
               disabled={!reason || submitting}
               onClick={handleSubmit}
-              className="w-full py-3.5 rounded-2xl text-sm font-black text-white transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+              className="w-full py-3.5 rounded-2xl text-sm font-black text-white transition-[transform,opacity,filter] duration-150 ease-out active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed"
               style={{
                 background: !reason || submitting
                   ? "#D1D5DB"

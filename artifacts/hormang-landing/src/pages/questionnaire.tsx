@@ -1020,7 +1020,7 @@ function CategorySelectScreen({ onSelect }: { onSelect: (id: string) => void }) 
               key={cat.id}
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05, duration: 0.4 }}
+              transition={{ delay: Math.min(i * 0.03, 0.18), duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
               onClick={() => onSelect(cat.id)}
               className="bg-white border border-gray-100 rounded-2xl p-5 text-left hover:border-blue-200 hover:shadow-md transition-all duration-200 group"
             >
@@ -1350,7 +1350,7 @@ function RecommendationsScreen({
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <div className="max-w-lg mx-auto px-4 py-12 flex-1 flex flex-col items-center justify-center text-center">
         <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
+          initial={{ scale: 0.96, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: "spring", stiffness: 300, damping: 22 }}
           className="w-20 h-20 rounded-3xl bg-emerald-50 border border-emerald-100 flex items-center justify-center mx-auto mb-5 shadow-sm"

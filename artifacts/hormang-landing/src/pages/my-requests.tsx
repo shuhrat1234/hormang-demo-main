@@ -142,8 +142,8 @@ function RequestCard({
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ delay: index * 0.05, duration: 0.35 }}
-      className={`bg-white rounded-2xl border overflow-hidden transition-all duration-200 ${
+      transition={{ delay: Math.min(index * 0.03, 0.24), duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
+      className={`bg-white rounded-2xl border overflow-hidden transition-[border-color,box-shadow,opacity] duration-150 ease-out ${
         isActive
           ? "border-gray-100 hover:border-gray-200 hover:shadow-sm"
           : "border-gray-100 opacity-75"

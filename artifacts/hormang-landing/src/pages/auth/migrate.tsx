@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
+import { AuthBackButton } from "@/components/auth-back-button";
 import { Mail, Phone, Loader2, ArrowRight, ChevronLeft, RefreshCw, CheckCircle2, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/auth-context";
@@ -119,7 +120,8 @@ export default function MigratePage() {
   const steps: Step[] = ["credentials", "phone", "otp"];
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 pt-16 sm:pt-4 relative">
+      <AuthBackButton />
       <motion.div
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
@@ -128,7 +130,9 @@ export default function MigratePage() {
       >
         <div className="text-center mb-8">
           <div className="flex justify-center mb-3">
-            <img src={logoImg} alt="Hormang" className="w-20 h-20 object-contain drop-shadow-lg" />
+            <Link href="/" title={t.dashboard.backHome} className="cursor-pointer hover:opacity-90 transition-opacity">
+              <img src={logoImg} alt="Hormang" className="w-20 h-20 object-contain drop-shadow-lg" />
+            </Link>
           </div>
 
           <div className="flex items-center justify-center gap-1.5 mb-4">

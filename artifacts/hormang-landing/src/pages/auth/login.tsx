@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useLocation, useSearch } from "wouter";
+import { useLocation, useSearch, Link } from "wouter";
 import { Phone, Mail, ArrowRight, Loader2, LogIn, ChevronLeft, RefreshCw, Lock, ShieldCheck, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AuthBackButton } from "@/components/auth-back-button";
 import { useAuth } from "@/contexts/auth-context";
 import { useI18n } from "@/contexts/i18n-context";
 import { tFormat, getAuthError } from "@/lib/i18n";
@@ -190,7 +191,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 pt-16 sm:pt-4 relative">
+      <AuthBackButton />
       <motion.div
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
@@ -203,7 +205,9 @@ export default function LoginPage() {
             transition={{ type: "spring", stiffness: 300, damping: 15 }}
             className="flex justify-center mb-3"
           >
-            <img src={logoImg} alt="Hormang" className="w-24 h-24 object-contain drop-shadow-lg" />
+            <Link href="/" title={t.dashboard.backHome} className="cursor-pointer">
+              <img src={logoImg} alt="Hormang" className="w-24 h-24 object-contain drop-shadow-lg" />
+            </Link>
           </motion.div>
           <h1 className="text-2xl font-display font-bold text-foreground mb-1">{t.auth.login.title}</h1>
           <p className="text-muted-foreground text-sm">

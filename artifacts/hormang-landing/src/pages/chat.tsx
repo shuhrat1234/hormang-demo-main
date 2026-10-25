@@ -33,6 +33,7 @@ import { addReview, hasReviewedRequest } from "@/lib/completion-store";
 import { SUSPENDED_MESSAGE } from "@/lib/safety-store";
 import { openChatSocket } from "@/lib/chat-socket";
 import { useToast } from "@/hooks/use-toast";
+import { triggerHaptic } from "@/lib/haptics";
 import { useI18n } from "@/contexts/i18n-context";
 import { tFormat } from "@/lib/i18n";
 
@@ -403,6 +404,7 @@ export default function ChatPage() {
     const attachment = attachPreview ? { type: "image" as const, url: attachPreview } : undefined;
     setInput("");
     setAttachPreview(null);
+    triggerHaptic("light");
     await sendMessage(chat.id, "customer", text, attachment);
     loadChat();
   }
@@ -487,7 +489,7 @@ export default function ChatPage() {
   const alreadyCompleted = offer?.status === "completed";
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
+    <div className="h-[100dvh] bg-gray-50 flex flex-col overflow-hidden">
       {/* Chat Header */}
       <div className="bg-white border-b border-gray-100 shrink-0 z-10">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
@@ -590,7 +592,7 @@ export default function ChatPage() {
       )}
 
       {/* Messages area — scrolls internally, fills all remaining space */}
-      <div className="flex-1 overflow-y-auto min-h-0">
+      <div className="flex-1 overflow-y-auto min-h-0 scroll-contain">
         <div className="max-w-lg mx-auto w-full px-4 pt-4 pb-4">
           {grouped.length === 0 && (
             <div className="text-center py-8 text-gray-400 text-sm">
@@ -683,12 +685,12 @@ export default function ChatPage() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKey}
             placeholder={tt.inputPlaceholder}
-            className="flex-1 px-4 py-2.5 rounded-2xl bg-gray-50 border border-gray-200 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-400 transition-all"
+            className="flex-1 px-4 py-2.5 rounded-2xl bg-gray-50 border border-gray-200 text-base md:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-400 transition-[border-color,background-color] duration-150"
           />
           <button
             onClick={handleSend}
             disabled={!input.trim() && !attachPreview}
-            className="w-10 h-10 rounded-xl bg-blue-600 hover:bg-blue-700 flex items-center justify-center text-white disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95"
+            className="w-10 h-10 rounded-xl bg-blue-600 hover:bg-blue-700 flex items-center justify-center text-white disabled:opacity-40 disabled:cursor-not-allowed transition-[transform,background-color] duration-150 active:scale-95 select-none cursor-pointer"
           >
             <Send className="w-4 h-4" />
           </button>
