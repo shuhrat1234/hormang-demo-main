@@ -14,7 +14,7 @@ import { CategoryIcon } from "@/components/category-icon";
 import { tFormat, getAuthError } from "@/lib/i18n";
 import { sendSmsCode, registerUser, saveProviderProfile, saveRegistrationSource } from "@/lib/auth-client";
 import { useToast } from "@/hooks/use-toast";
-import { recordReferralSignup, processReferralReward } from "@/lib/referral-store";
+import { recordReferralSignup, processReferralReward, getActiveReferralCode } from "@/lib/referral-store";
 import logoImg from "/hormang-logo.png";
 
 function formatPhone(raw: string): string {
@@ -288,6 +288,7 @@ export default function RegisterPage() {
   const params = new URLSearchParams(search);
   const role = (params.get("role") ?? "buyer") as "buyer" | "provider";
   const refCode = params.get("ref") ?? "";
+  const activeRef = (refCode || getActiveReferralCode()).trim().toUpperCase();
   const returnTo = params.get("returnTo");
   const [, setLocation] = useLocation();
   const { setAuth, user } = useAuth();
@@ -377,16 +378,20 @@ export default function RegisterPage() {
         phone: getFullPhone(),
         otp,
         role,
+        referrerCode: activeRef || undefined,
       });
+
+      if (activeRef) {
+        recordReferralSignup(activeRef, res.user.id);
+        void processReferralReward(res.user.id, activeRef);
+      }
 
       if (role === "buyer") {
         setAuth(res.user, null);
-        if (refCode) recordReferralSignup(refCode, res.user.id);
         toast({ title: tFormat(t.auth.register.welcomeBuyerTpl, { name: res.user.firstName }) });
         setStep("survey");
       } else {
         setAuth(res.user, null);
-        if (refCode) recordReferralSignup(refCode, res.user.id);
         setStep("provider");
       }
     } catch (err: unknown) {
@@ -405,8 +410,10 @@ export default function RegisterPage() {
         bio: data.bio,
         preferredLocation: data.preferredLocation,
       });
-      setAuth(user!, profile);
-      processReferralReward(user!.id);
+      if (user) {
+        setAuth(user, profile);
+        void processReferralReward(user.id);
+      }
       toast({ title: tFormat(t.auth.register.welcomeProviderTpl, { name: user?.firstName ?? "" }) });
       setStep("survey");
     } catch (err: unknown) {
@@ -481,6 +488,13 @@ export default function RegisterPage() {
             {step === "provider" && t.auth.register.descProvider}
             {step === "survey" && t.auth.register.descSurvey}
           </p>
+
+          {activeRef && step !== "survey" && (
+            <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-700 dark:text-amber-300 text-xs font-semibold">
+              <span>🎁</span>
+              <span>Referral: <b className="font-mono">{activeRef}</b></span>
+            </div>
+          )}
         </div>
 
         {serverError && (

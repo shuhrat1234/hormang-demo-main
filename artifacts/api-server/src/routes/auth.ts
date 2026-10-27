@@ -15,6 +15,7 @@ import { requireAuth, revokeToken } from "../middlewares/auth.js";
 import { isEskizConfigured, isResendConfigured, env } from "../lib/env.js";
 import { sendOtpSms } from "../lib/eskiz.js";
 import { sendOtpEmail } from "../lib/resend.js";
+import { grantReferralReward } from "../lib/referral.js";
 import crypto from "crypto";
 
 const router = Router();
@@ -276,13 +277,14 @@ router.post("/sms/send", smsRateLimiter, async (req, res) => {
 // ─── POST /register (phone + OTP) ──────────────────────────────────────────
 router.post("/register", authRateLimiter, async (req, res) => {
   try {
-    const { firstName, lastName, phone, otp, role, registrationSource } = req.body as {
+    const { firstName, lastName, phone, otp, role, registrationSource, referrerCode } = req.body as {
       firstName?: string;
       lastName?: string;
       phone?: string;
       otp?: string;
       role?: "buyer" | "provider";
       registrationSource?: string;
+      referrerCode?: string;
     };
 
     if (!firstName || !lastName || !phone || !otp) {
@@ -325,6 +327,15 @@ router.post("/register", authRateLimiter, async (req, res) => {
         registrationSource: registrationSource ? registrationSource.trim().slice(0, 150) : null,
       })
       .returning();
+
+    // Process referral reward atomically upon user creation if referred
+    if (referrerCode && typeof referrerCode === "string") {
+      try {
+        await grantReferralReward(referrerCode, user.id);
+      } catch (refErr) {
+        console.error("Auto grant referral on register error:", refErr);
+      }
+    }
 
     const safeUser = { ...user, passwordHash: undefined, twoFactorCodeHash: undefined };
     const accessToken = generateAccessToken({ ...user });

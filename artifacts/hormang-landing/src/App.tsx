@@ -16,6 +16,8 @@ migrateOnce();
 void refreshCategoriesCache().then(() => refreshQuestionsCache());
 void refreshAnnouncementsCache();
 void refreshBadgesCache();
+import { captureReferralFromUrl } from "@/lib/referral-store";
+captureReferralFromUrl();
 import { CookieConsentBanner } from "@/components/cookie-banner";
 import NotFound from "@/pages/not-found";
 import LandingPage from "@/pages/landing";

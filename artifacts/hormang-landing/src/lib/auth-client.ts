@@ -394,6 +394,7 @@ export async function registerUser(body: {
   otp: string;
   role: "buyer" | "provider";
   registrationSource?: string;
+  referrerCode?: string;
 }): Promise<AuthResponse> {
   const normalized = normalizePhone(body.phone);
 

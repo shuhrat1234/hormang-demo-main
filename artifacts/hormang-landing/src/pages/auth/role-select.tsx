@@ -3,15 +3,20 @@ import { useLocation, useSearch, Link } from "wouter";
 import { AuthBackButton } from "@/components/auth-back-button";
 import { ShoppingBag, Briefcase, ArrowRight } from "lucide-react";
 import { useI18n } from "@/contexts/i18n-context";
+import { getActiveReferralCode } from "@/lib/referral-store";
 
 export default function RoleSelectPage() {
   const [, setLocation] = useLocation();
   const { t } = useI18n();
-  const returnTo = new URLSearchParams(useSearch()).get("returnTo");
+  const search = useSearch();
+  const params = new URLSearchParams(search);
+  const returnTo = params.get("returnTo");
+  const refCode = (params.get("ref") || getActiveReferralCode()).trim().toUpperCase();
 
   function pick(role: "buyer" | "provider") {
     const returnToQs = returnTo ? `&returnTo=${encodeURIComponent(returnTo)}` : "";
-    setLocation(`/auth/register?role=${role}${returnToQs}`);
+    const refQs = refCode ? `&ref=${encodeURIComponent(refCode)}` : "";
+    setLocation(`/auth/register?role=${role}${returnToQs}${refQs}`);
   }
 
   function goLogin() {
