@@ -2996,6 +2996,10 @@ function UsersSection({ refreshKey, onGoToFeedback, openUserId, onOpenUserIdCons
         registrationSource: bu.registrationSource ?? null,
         profileRewardGranted: bu.profileRewardGranted ?? false,
         profileRewardGrantedAt: bu.profileRewardGrantedAt ?? undefined,
+        categories: bu.categories?.length ? bu.categories : undefined,
+        location: bu.district ?? bu.region ?? undefined,
+        serviceAreas: bu.region ? [bu.region] : undefined,
+        serviceAreaV2: bu.serviceAreaV2 ?? undefined,
         offerCount:    isProvider ? 0 : undefined,
         acceptedCount: isProvider ? 0 : undefined,
         avgResponseTime: isProvider ? 0 : undefined,
@@ -3043,75 +3047,20 @@ function UsersSection({ refreshKey, onGoToFeedback, openUserId, onOpenUserIdCons
       }
     }
 
-    /* ── Step 2: Enrich providers with LocalProfile data (serviceAreas, joinedAt) ──
-       Real key (lib/local-profile.ts): `user_<userId>_localProfile` */
-    for (let i = 0; i < localStorage.length; i++) {
-      const lsKey = localStorage.key(i);
-      if (!lsKey?.startsWith("user_") || !lsKey.endsWith("_localProfile")) continue;
-      try {
-        const raw = localStorage.getItem(lsKey);
-        if (!raw) continue;
-        const lp = JSON.parse(raw) as {
-          serviceAreas?: string[]; serviceAreaV2?: AdminUser["serviceAreaV2"];
-          region?: string; district?: string;
-          categories?: string[];
-          createdAt?: string; photoUrl?: string;
-        };
-        const uid_ = lsKey.slice("user_".length, -("_localProfile".length));
-        const u_ = userMap.get(uid_);
-        if (u_) {
-          u_.serviceAreas  = lp.serviceAreas ?? (lp.region ? [lp.region] : undefined);
-          u_.serviceAreaV2 = lp.serviceAreaV2;
-          u_.joinedAt      = u_.joinedAt ?? lp.createdAt;
-          u_.location      = u_.location ?? lp.district ?? lp.region;
-          if (lp.categories?.length) u_.categories = lp.categories;
-          // Categories present → ensure role reflects provider access
-          if (lp.categories?.length && u_.role === "customer") u_.role = "both";
-        }
-      } catch { /* skip */ }
-    }
-
-    /* ── Step 3: Customer registry → enrich customers / upgrade to "both" ── */
-    const result: AdminUser[] = [];
-
-    for (const [userId, entry] of Object.entries(registry)) {
-      const custRequests = allRequests.filter((r) => r.customerId === userId);
-      const location     = custRequests.length > 0
-        ? (custRequests[0].district ?? custRequests[0].region ?? locationFrom(custRequests[0].answers))
-        : undefined;
-
-      const existing = userMap.get(userId);
-      if (existing) {
-        // User already known (auth store or offers). If they show up in
-        // customer registry too, they have customer activity → expand role.
-        if (existing.role === "provider") existing.role = "both";
-        existing.requestCount = custRequests.length;
-        existing.location     = existing.location ?? location;
-        existing.phone        = existing.phone ?? phoneRegistry[userId];
-        existing.name         = existing.name && existing.name !== "Ijrochi" && existing.name !== "Mijoz"
-          ? existing.name
-          : (entry.name ?? existing.name);
-      }
-      // Note: deliberately does NOT fabricate a new user purely from this
-      // browser's local registry cache — the backend user list (already
-      // seeded above) is the sole source of truth for who actually exists.
-      // A stale local-only entry here previously resurrected deleted users
-      // as phantom rows in the admin panel.
-    }
-
-    // Also enrich customers (from auth store) with their request counts
+    /* ── Step 2: Enrich with real customer request activity from the backend (allRequests) ──
+       Shared database truth across every admin/browser. A provider who has
+       posted customer requests appears as role="both" consistently on every device,
+       without relying on browser localStorage. */
     for (const u of userMap.values()) {
-      if (u.requestCount === undefined) {
-        const reqs = allRequests.filter((r) => r.customerId === u.userId);
-        if (reqs.length > 0) {
-          u.requestCount = reqs.length;
-          u.location = u.location ?? reqs[0].district ?? reqs[0].region ?? locationFrom(reqs[0].answers);
-          if (u.role === "provider") u.role = "both";
-        }
+      const reqs = allRequests.filter((r) => r.customerId === u.userId);
+      u.requestCount = reqs.length;
+      if (reqs.length > 0) {
+        u.location = u.location ?? reqs[0].district ?? reqs[0].region ?? locationFrom(reqs[0].answers);
+        if (u.role === "provider") u.role = "both";
       }
     }
 
-    result.push(...userMap.values());
+    const result: AdminUser[] = Array.from(userMap.values());
 
     /* ── Step 4/5: Enrich all users with real referral data (referrals table —
        rewarding now happens server-side via POST /wallet/referral-reward,

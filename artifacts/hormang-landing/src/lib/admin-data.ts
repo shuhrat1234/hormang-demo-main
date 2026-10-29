@@ -109,6 +109,11 @@ export interface BackendAdminUser {
   tags: string[]; adminNotes: BackendAdminNote[];
   profileRewardGranted?: boolean;
   profileRewardGrantedAt?: string | null;
+  categories?: string[];
+  region?: string | null;
+  district?: string | null;
+  serviceAreaV2?: { toshkent_city: { all: boolean; districts: string[] }; toshkent_region: { all: boolean; cities: string[] } } | null;
+  photoUrl?: string | null;
 }
 export interface BackendUserModeration {
   userId: string; suspended: boolean; verified: boolean; flagCount: number;
