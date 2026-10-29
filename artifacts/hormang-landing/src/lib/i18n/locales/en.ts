@@ -1884,6 +1884,7 @@ export const en: Dict = {
     DELETE_REQUEST_NOT_FOUND: "DELETE_REQUEST_NOT_FOUND",
     PHONE_BELONGS_TO_OTHER: "PHONE_BELONGS_TO_OTHER",
     PROVIDER_NOT_FOUND: "PROVIDER_NOT_FOUND",
+    RATE_LIMIT_EXCEEDED: "SMS limit exceeded. Please try again in a few minutes.",
   },
   offerBlock: {
     matched:        "OFFER_BLOCK_MATCHED",

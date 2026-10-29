@@ -195,10 +195,20 @@ const BACKEND_ERROR_CODES: Record<string, string> = {
   "Telefon raqami talab qilinadi": "PHONE_REQUIRED",
   "Sessiya muddati o'tgan. Qaytadan urinib ko'ring.": "SESSION_EXPIRED",
   "Kod noto'g'ri": "TWO_FA_INVALID",
+  "SMS yuborish chegarasi oshdi. Birozdan so'ng qayta urinib ko'ring.": "RATE_LIMIT_EXCEEDED",
+  "Juda ko'p urinishlar. Iltimos keyinroq qayta urinib ko'ring.": "RATE_LIMIT_EXCEEDED",
+  "RATE_LIMIT_EXCEEDED": "RATE_LIMIT_EXCEEDED",
 };
 
 function throwBackendError(err: unknown): never {
   if (err instanceof ApiError) {
+    if (err.status === 429) {
+      throw new Error("RATE_LIMIT_EXCEEDED");
+    }
+    const dataCode = err.data && typeof err.data === "object" && "code" in err.data ? String((err.data as { code?: unknown }).code) : undefined;
+    if (dataCode && BACKEND_ERROR_CODES[dataCode]) {
+      throw new Error(BACKEND_ERROR_CODES[dataCode]);
+    }
     throw new Error(BACKEND_ERROR_CODES[err.message] ?? err.message);
   }
   throw err instanceof Error ? err : new Error("SERVER_ERROR");

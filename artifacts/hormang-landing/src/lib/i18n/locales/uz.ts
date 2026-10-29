@@ -1883,6 +1883,7 @@ export const uz = {
     DELETE_REQUEST_NOT_FOUND: "O'chirish so'rovi topilmadi",
     PHONE_BELONGS_TO_OTHER: "Bu raqam boshqa hisob bilan bog'liq",
     PROVIDER_NOT_FOUND: "Ijrochi topilmadi",
+    RATE_LIMIT_EXCEEDED: "SMS yuborish chegarasi oshdi. Iltimos, birozdan so'ng qayta urinib ko'ring.",
   },
   offerBlock: {
     matched:        "Mijoz boshqa ijrochi taklifini qabul qilgan",

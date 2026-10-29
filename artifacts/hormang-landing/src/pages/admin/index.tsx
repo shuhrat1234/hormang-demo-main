@@ -2994,6 +2994,8 @@ function UsersSection({ refreshKey, onGoToFeedback, openUserId, onOpenUserIdCons
         adminNotes:  bu.adminNotes,
         tangaBalance: bu.balance,
         registrationSource: bu.registrationSource ?? null,
+        profileRewardGranted: bu.profileRewardGranted ?? false,
+        profileRewardGrantedAt: bu.profileRewardGrantedAt ?? undefined,
         offerCount:    isProvider ? 0 : undefined,
         acceptedCount: isProvider ? 0 : undefined,
         avgResponseTime: isProvider ? 0 : undefined,
@@ -3150,17 +3152,12 @@ function UsersSection({ refreshKey, onGoToFeedback, openUserId, onOpenUserIdCons
       }
     }
 
-    /* ── Step 7: Profile completion reward status ── */
-    for (const u of result) {
-      try {
-        const raw = localStorage.getItem(`hormang_profile_reward_${u.userId}`);
-        if (raw) {
-          const r = JSON.parse(raw) as { granted?: boolean; grantedAt?: string };
-          u.profileRewardGranted  = r.granted === true;
-          u.profileRewardGrantedAt = r.grantedAt;
-        }
-      } catch { /* skip */ }
-    }
+    /* ── Step 7: Profile completion reward status ──
+       Authoritative database truth (users.profile_bonus_granted_at).
+       Never read from this browser's local localStorage cache, ensuring
+       all administrators on any computer see identical, synchronized data. */
+    // u.profileRewardGranted and u.profileRewardGrantedAt were already seeded
+    // directly from backendUsers (Postgres usersTable) in Step 1a.
 
     for (const u of result) u.reportCount = reportCountByUser.get(u.userId) ?? 0;
 

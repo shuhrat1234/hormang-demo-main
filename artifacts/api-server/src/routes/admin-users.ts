@@ -54,6 +54,8 @@ router.get("/", async (_req, res) => {
           flagCount: mod?.flagCount ?? 0,
           tags: mod?.tags ?? [],
           adminNotes: mod?.adminNotes ?? [],
+          profileRewardGranted: !!u.profileBonusGrantedAt,
+          profileRewardGrantedAt: u.profileBonusGrantedAt?.toISOString() ?? null,
         };
       }),
     });

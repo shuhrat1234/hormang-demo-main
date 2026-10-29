@@ -1886,6 +1886,7 @@ export const ru: Dict = {
     DELETE_REQUEST_NOT_FOUND: "Запрос на удаление не найден",
     PHONE_BELONGS_TO_OTHER: "Этот номер привязан к другому аккаунту",
     PROVIDER_NOT_FOUND: "Исполнитель не найден",
+    RATE_LIMIT_EXCEEDED: "Превышен лимит отправки SMS. Пожалуйста, повторите попытку позже.",
   },
   offerBlock: {
     matched:        "Заказчик уже принял другое предложение",

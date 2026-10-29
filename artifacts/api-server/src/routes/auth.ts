@@ -20,19 +20,48 @@ import crypto from "crypto";
 
 const router = Router();
 
+function normalizePhone(phone: string): string {
+  return phone.replace(/\s+/g, "").trim();
+}
+
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
 // S7: Rate limiting for SMS and Auth endpoints
+// 1. Keyed by destination (phone / email) so one user's requests do not block other users
 const smsRateLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
   max: 5,
-  message: { error: "SMS yuborish chegarasi oshdi. Birozdan so'ng qayta urinib ko'ring." },
+  keyGenerator: (req) => {
+    const dest = req.body?.phone
+      ? normalizePhone(String(req.body.phone))
+      : req.body?.email
+      ? normalizeEmail(String(req.body.email))
+      : (req.ip || "unknown");
+    return dest;
+  },
+  validate: { xForwardedForHeader: false, default: true },
+  message: { error: "SMS yuborish chegarasi oshdi. Birozdan so'ng qayta urinib ko'ring.", code: "RATE_LIMIT_EXCEEDED" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// 2. Global per-IP rate limit for SMS/Email OTP (prevents spam attacks targeting different numbers)
+const otpIpRateLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 30,
+  validate: { xForwardedForHeader: false, default: true },
+  message: { error: "SMS yuborish chegarasi oshdi. Birozdan so'ng qayta urinib ko'ring.", code: "RATE_LIMIT_EXCEEDED" },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
 const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 25,
-  message: { error: "Juda ko'p urinishlar. Iltimos keyinroq qayta urinib ko'ring." },
+  max: 30,
+  validate: { xForwardedForHeader: false, default: true },
+  message: { error: "Juda ko'p urinishlar. Iltimos keyinroq qayta urinib ko'ring.", code: "RATE_LIMIT_EXCEEDED" },
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -41,14 +70,6 @@ const authRateLimiter = rateLimit({
 type OtpChannel = "sms" | "email";
 interface OtpEntry { code: string; expiresAt: number; purpose: string; channel: OtpChannel; attempts: number }
 const otpStore = new Map<string, OtpEntry>();
-
-function normalizePhone(phone: string): string {
-  return phone.replace(/\s+/g, "").trim();
-}
-
-function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase();
-}
 
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -174,7 +195,7 @@ async function getProviderProfile(userId: string) {
 }
 
 // ─── POST /sms/send ─────────────────────────────────────────────────────────
-router.post("/sms/send", smsRateLimiter, async (req, res) => {
+router.post("/sms/send", otpIpRateLimiter, smsRateLimiter, async (req, res) => {
   try {
     const { phone, purpose, forceSms } = req.body as { phone?: string; purpose?: string; forceSms?: boolean };
 
@@ -514,7 +535,7 @@ router.post("/login", authRateLimiter, async (req, res) => {
 });
 
 // ─── POST /login-email/send (send a login code to a verified email, no phone) ─
-router.post("/login-email/send", smsRateLimiter, async (req, res) => {
+router.post("/login-email/send", otpIpRateLimiter, smsRateLimiter, async (req, res) => {
   try {
     const { email } = req.body as { email?: string };
     if (!email || !isValidEmail(email)) {

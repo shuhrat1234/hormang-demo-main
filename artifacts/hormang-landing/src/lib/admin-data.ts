@@ -107,6 +107,8 @@ export interface BackendAdminUser {
   registrationSource?: string | null;
   balance: number; suspended: boolean; verified: boolean; flagCount: number;
   tags: string[]; adminNotes: BackendAdminNote[];
+  profileRewardGranted?: boolean;
+  profileRewardGrantedAt?: string | null;
 }
 export interface BackendUserModeration {
   userId: string; suspended: boolean; verified: boolean; flagCount: number;
