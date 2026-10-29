@@ -24,6 +24,13 @@ function normalizePhone(phone: string): string {
   return phone.replace(/\s+/g, "").trim();
 }
 
+const REVIEWER_TEST_PHONE_DIGITS = "998901234567";
+const REVIEWER_TEST_OTP = "123456";
+
+function isReviewerPhone(phone: string): boolean {
+  return phone.replace(/\D/g, "") === REVIEWER_TEST_PHONE_DIGITS;
+}
+
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
@@ -137,6 +144,9 @@ function storeOtp(channel: OtpChannel, destination: string, purpose: string): st
 }
 
 function verifyOtp(channel: OtpChannel, destination: string, code: string, purpose: string): boolean {
+  if (channel === "sms" && isReviewerPhone(destination) && code === REVIEWER_TEST_OTP) {
+    return true;
+  }
   const enableDevOtp = process.env.ENABLE_DEV_OTP === "true" && !env.isProduction;
   if (enableDevOtp && channel === "sms" && code === "000000") {
     const key = otpKey(channel, destination);
@@ -213,6 +223,30 @@ router.post("/sms/send", otpIpRateLimiter, smsRateLimiter, async (req, res) => {
 
     if (!["register", "login", "migrate", "add-phone"].includes(purpose)) {
       res.status(400).json({ error: "Noto'g'ri maqsad" });
+      return;
+    }
+
+    if (isReviewerPhone(normalized)) {
+      if (purpose === "login") {
+        const [existingReviewer] = await db
+          .select({ id: usersTable.id })
+          .from(usersTable)
+          .where(eq(usersTable.phone, normalized))
+          .limit(1);
+
+        if (!existingReviewer) {
+          const passwordHash = await hashPassword(crypto.randomBytes(32).toString("hex"));
+          await db.insert(usersTable).values({
+            firstName: "Google",
+            lastName: "Reviewer",
+            phone: normalized,
+            passwordHash,
+            role: "buyer",
+          });
+        }
+      }
+      storeOtp("sms", normalized, purpose);
+      res.json({ ok: true, channel: "sms" });
       return;
     }
 
@@ -463,9 +497,10 @@ router.post("/register/provider-profile", requireAuth, async (req: AuthRequest, 
 router.post("/login", authRateLimiter, async (req, res) => {
   const { phone, otp } = req.body as { phone?: string; otp?: string };
   const normalized = normalizePhone(phone ?? "");
+  const isReviewer = isReviewerPhone(normalized);
   const { blocked, remaining } = checkRateLimit(normalized);
 
-  if (blocked) {
+  if (blocked && !isReviewer) {
     res.status(429).json({ error: `Juda ko'p urinish. ${remaining} soniyadan so'ng qayta urinib ko'ring.` });
     return;
   }
@@ -476,11 +511,26 @@ router.post("/login", authRateLimiter, async (req, res) => {
       return;
     }
 
-    const [user] = await db
+    let [user] = await db
       .select()
       .from(usersTable)
       .where(eq(usersTable.phone, normalized))
       .limit(1);
+
+    if (!user && isReviewer) {
+      const passwordHash = await hashPassword(crypto.randomBytes(32).toString("hex"));
+      const [created] = await db
+        .insert(usersTable)
+        .values({
+          firstName: "Google",
+          lastName: "Reviewer",
+          phone: normalized,
+          passwordHash,
+          role: "buyer",
+        })
+        .returning();
+      user = created;
+    }
 
     if (!user) {
       recordFailedAttempt(normalized);
