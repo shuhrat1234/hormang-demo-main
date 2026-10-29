@@ -799,8 +799,8 @@ export const ru: Dict = {
     },
     categories: {
       pill: "Категории",
-      titleA: "9",
-      titleB: "направлений услуг",
+      titleA: "4",
+      titleB: "направления услуг",
       desc: "Выберите нужное направление — анкета задаст вопросы именно по нему.",
       submitArrow: "Отправить запрос →",
       list: [
@@ -808,11 +808,6 @@ export const ru: Dict = {
         { id: "tozalash", name: "Уборка", emoji: "🧹", desc: "Квартира, двор, офис" },
         { id: "avto", name: "Авто услуги", emoji: "🚗", desc: "Диагностика, мойка, ремонт" },
         { id: "kochirish", name: "Переезд / доставка", emoji: "🚚", desc: "Переезд и транспорт" },
-        { id: "repetitor", name: "Репетиторы", emoji: "📚", desc: "Языки, математика, музыка" },
-        { id: "tadbir", name: "Ивент услуги", emoji: "🎉", desc: "Свадьба, день рождения, корпоратив" },
-        { id: "gozallik", name: "Красота", emoji: "💄", desc: "Маникюр, причёска, макияж" },
-        { id: "enaga", name: "Няня", emoji: "👶", desc: "Уход за детьми и пожилыми" },
-        { id: "ustachilik", name: "Строительство", emoji: "🏗️", desc: "Строительные и отделочные работы" },
       ],
     },
     showcase: {

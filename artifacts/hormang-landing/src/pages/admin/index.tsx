@@ -3843,22 +3843,65 @@ function UsersSection({ refreshKey, onGoToFeedback, openUserId, onOpenUserIdCons
 
 /* ─── Admin User Transactions Modal ─────────────────────────────────── */
 function AdminUserTxModal({
-  userId, userName, balance, onClose,
+  userId, userName, balance: initialBalance, onClose,
 }: {
   userId: string; userName: string; balance: number; onClose: () => void;
 }) {
   const [txs, setTxs] = useState<TangaTx[]>([]);
   const [allOffers, setAllOffers] = useState<BuyerOfferFull[]>([]);
-  const totalSpent = txs.filter(txIsOfferSpend).reduce((s, t) => s + t.amount, 0);
   const [viewOfferId, setViewOfferId] = useState<string | null>(null);
-  const viewedOffer = viewOfferId ? allOffers.find((o) => o.id === viewOfferId) : undefined;
+  const [filter, setFilter] = useState<"all" | "in" | "out" | "purchase" | "spend">("all");
+  const [curBalance, setCurBalance] = useState<number>(initialBalance);
 
-  useEffect(() => {
+  // Quick adjust balance
+  const [showAdjust, setShowAdjust] = useState(false);
+  const [adjustAmt, setAdjustAmt] = useState(5);
+  const [adjustDir, setAdjustDir] = useState<"in" | "out">("in");
+  const [adjustReasonPreset, setAdjustReasonPreset] = useState("Bonus / Rag'bat");
+  const [adjustNote, setAdjustNote] = useState("");
+  const [adjusting, setAdjusting] = useState(false);
+
+  const loadData = useCallback(() => {
     fetchWalletTransactions(userId)
       .then(({ transactions }) => setTxs(backendTxsToLocal(transactions)))
       .catch((err) => console.error("Load user transactions failed:", err));
-    getAllOffersAdmin().then(setAllOffers).catch((err) => console.error("Load offers failed:", err));
   }, [userId]);
+
+  useEffect(() => {
+    loadData();
+    getAllOffersAdmin().then(setAllOffers).catch((err) => console.error("Load offers failed:", err));
+  }, [loadData]);
+
+  const viewedOffer = viewOfferId ? allOffers.find((o) => o.id === viewOfferId) : undefined;
+
+  const totalIn = txs.filter((t) => (t.direction === "in" || txSignedAmount(t) > 0)).reduce((s, t) => s + t.amount, 0);
+  const totalOut = txs.filter((t) => (t.direction === "out" || txSignedAmount(t) < 0)).reduce((s, t) => s + t.amount, 0);
+
+  const filteredTxs = txs.filter((tx) => {
+    const signed = txSignedAmount(tx);
+    if (filter === "in") return signed > 0 || tx.direction === "in";
+    if (filter === "out") return signed < 0 || tx.direction === "out";
+    if (filter === "purchase") return tx.type === "purchase";
+    if (filter === "spend") return tx.type === "spend";
+    return true;
+  });
+
+  async function handleQuickAdjust() {
+    if (adjustAmt <= 0) return;
+    setAdjusting(true);
+    const finalReason = adjustNote.trim() ? `${adjustReasonPreset}: ${adjustNote.trim()}` : adjustReasonPreset;
+    try {
+      const res = await adjustWalletBalanceBackend(userId, adjustAmt, adjustDir, finalReason);
+      setCurBalance(res.balance);
+      setShowAdjust(false);
+      setAdjustNote("");
+      loadData();
+    } catch (err) {
+      alert(err instanceof AdminApiError ? err.message : "Xatolik yuz berdi");
+    } finally {
+      setAdjusting(false);
+    }
+  }
 
   return (
     <>
@@ -3866,7 +3909,7 @@ function AdminUserTxModal({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center"
+        className="fixed inset-0 bg-black/50 z-[60] flex items-end justify-center"
         onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       >
         <motion.div
@@ -3877,70 +3920,214 @@ function AdminUserTxModal({
           className="bg-white w-full max-w-lg rounded-t-3xl max-h-[92vh] flex flex-col"
         >
           {/* Header */}
-          <div className="flex items-center gap-3 px-5 pt-5 pb-4 border-b border-gray-100 flex-shrink-0">
-            <div className="flex-1">
-              <h2 className="font-extrabold text-base text-gray-900">{userName} — Tanga tarixi</h2>
-              <p className="text-xs text-gray-400">{txs.length} ta tranzaksiya · Joriy balans: {balance} 🪙</p>
+          <div className="flex items-center gap-3 px-5 pt-5 pb-3 border-b border-gray-100 flex-shrink-0">
+            <div className="flex-1 min-w-0">
+              <h2 className="font-extrabold text-base text-gray-900 truncate">{userName} — Tanga tarixi</h2>
+              <p className="text-xs text-gray-400">{txs.length} ta tranzaksiya · Joriy balans: <span className="font-bold text-amber-600">{curBalance} 🪙</span></p>
             </div>
+            <button
+              onClick={() => setShowAdjust(!showAdjust)}
+              className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-colors border flex items-center gap-1 ${
+                showAdjust ? "bg-amber-100 text-amber-800 border-amber-300" : "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
+              }`}
+            >
+              ± Balans
+            </button>
             <button onClick={onClose}
               className="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors">
               <X className="w-4 h-4" />
             </button>
           </div>
 
-          {/* Stats */}
-          <div className="px-5 py-3 border-b border-gray-50 grid grid-cols-3 gap-3 flex-shrink-0">
+          {/* Inline Adjust Balance form */}
+          {showAdjust && (
+            <div className="bg-amber-50/70 border-b border-amber-200/70 px-5 py-3 space-y-2 flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-amber-900">Admin orqali balans sozlash</span>
+                <span className="text-[11px] text-amber-700">Joriy: {curBalance} 🪙</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex items-center gap-1">
+                  <select
+                    value={adjustDir}
+                    onChange={(e) => setAdjustDir(e.target.value as "in" | "out")}
+                    className="h-9 px-2 rounded-xl border border-amber-200 bg-white text-xs font-bold text-gray-800"
+                  >
+                    <option value="in">+ Qo'shish</option>
+                    <option value="out">− Ayirish</option>
+                  </select>
+                  <input
+                    type="number"
+                    min={1}
+                    value={adjustAmt || ""}
+                    onChange={(e) => setAdjustAmt(Math.max(1, Number(e.target.value)))}
+                    placeholder="Miqdor"
+                    className="h-9 w-20 px-2 rounded-xl border border-amber-200 bg-white text-xs font-bold text-gray-800"
+                  />
+                </div>
+                <select
+                  value={adjustReasonPreset}
+                  onChange={(e) => setAdjustReasonPreset(e.target.value)}
+                  className="h-9 px-2 rounded-xl border border-amber-200 bg-white text-xs font-semibold text-gray-800"
+                >
+                  <option value="Bonus / Rag'bat">🎁 Bonus / Rag'bat</option>
+                  <option value="Kompensatsiya">🤝 Kompensatsiya</option>
+                  <option value="Sinov / Test">🧪 Sinov / Test</option>
+                  <option value="Xatolik tuzatish">⚙️ Xatolik tuzatish</option>
+                  <option value="Jarima / Qoidabuzarlik">⚠️ Jarima</option>
+                </select>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={adjustNote}
+                  onChange={(e) => setAdjustNote(e.target.value)}
+                  placeholder="Qo'shimcha izoh (ixtiyoriy)..."
+                  className="flex-1 h-8 px-2.5 rounded-xl border border-amber-200 bg-white text-xs text-gray-800 placeholder:text-gray-400"
+                />
+                <button
+                  onClick={handleQuickAdjust}
+                  disabled={adjusting || adjustAmt <= 0}
+                  className="px-3 h-8 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold disabled:opacity-50 transition-colors shadow-sm"
+                >
+                  {adjusting ? "..." : "Saqlash"}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Stats Bar */}
+          <div className="px-5 py-2.5 border-b border-gray-100 grid grid-cols-3 gap-2 flex-shrink-0 bg-gray-50/50">
             <div className="text-center">
-              <p className="text-[10px] text-gray-400">Balans</p>
-              <p className="font-extrabold text-amber-600 text-base">{balance} 🪙</p>
+              <p className="text-[10px] text-gray-400 font-semibold uppercase">Balans</p>
+              <p className="font-extrabold text-amber-600 text-sm">{curBalance} 🪙</p>
             </div>
             <div className="text-center">
-              <p className="text-[10px] text-gray-400">Jami sarflandi</p>
-              <p className="font-extrabold text-red-600 text-base">{totalSpent} 🪙</p>
+              <p className="text-[10px] text-gray-400 font-semibold uppercase">Jami kirim</p>
+              <p className="font-extrabold text-emerald-600 text-sm">+{totalIn} 🪙</p>
             </div>
             <div className="text-center">
-              <p className="text-[10px] text-gray-400">Tranzaksiyalar</p>
-              <p className="font-extrabold text-gray-700 text-base">{txs.length}</p>
+              <p className="text-[10px] text-gray-400 font-semibold uppercase">Jami chiqim</p>
+              <p className="font-extrabold text-red-500 text-sm">−{totalOut} 🪙</p>
             </div>
           </div>
 
+          {/* Filter tabs */}
+          <div className="flex items-center gap-1 px-5 py-2 border-b border-gray-100 flex-shrink-0 overflow-x-auto no-scrollbar">
+            {(
+              [
+                { id: "all", label: `Barchasi (${txs.length})` },
+                { id: "in", label: "Kirim (+)" },
+                { id: "out", label: "Chiqim (−)" },
+                { id: "purchase", label: "Xaridlar" },
+                { id: "spend", label: "Takliflar" },
+              ] as const
+            ).map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setFilter(tab.id)}
+                className={`px-3 py-1 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                  filter === tab.id
+                    ? "bg-gray-900 text-white shadow-xs"
+                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
           {/* Body */}
-          <div className="overflow-y-auto flex-1 px-5 py-4">
-            {txs.length === 0 ? (
+          <div className="overflow-y-auto flex-1 px-5 py-3 space-y-2.5">
+            {filteredTxs.length === 0 ? (
               <div className="text-center py-10">
                 <div className="flex justify-center mb-2"><TangaCoin size="lg" /></div>
-                <p className="text-gray-400 font-semibold text-sm">Hali tranzaksiyalar yo'q</p>
+                <p className="text-gray-400 font-semibold text-sm">Tranzaksiyalar topilmadi</p>
               </div>
             ) : (
-              <div className="space-y-2">
-                {txs.map((tx) => {
-                  const offer  = allOffers.find((o) => o.id === tx.offerId);
-                  const signed = txSignedAmount(tx);
-                  const isIn   = signed >= 0;
-                  return (
-                    <div key={tx.id} className="bg-gray-50 rounded-xl p-3 flex items-center gap-3 border border-gray-100">
-                      <CategoryIcon categoryId={null} emoji={tx.categoryEmoji || "📋"} size={28} shape="square" className="flex-shrink-0" />
+              filteredTxs.map((tx) => {
+                const offer = allOffers.find((o) => o.id === tx.offerId);
+                const signed = txSignedAmount(tx);
+                const isIn = signed >= 0 || tx.direction === "in";
+
+                // Type metadata badge
+                let typeBadge = { label: "Tranzaksiya", bg: "bg-gray-100 text-gray-700 border-gray-200" };
+                if (tx.type === "purchase") typeBadge = { label: "Tarif xaridi", bg: "bg-emerald-50 text-emerald-700 border-emerald-200" };
+                else if (tx.type === "spend") typeBadge = { label: "Taklif xarajati", bg: "bg-violet-50 text-violet-700 border-violet-200" };
+                else if (tx.type === "referral") typeBadge = { label: "Referral bonusi", bg: "bg-blue-50 text-blue-700 border-blue-200" };
+                else if (tx.type === "refund") typeBadge = { label: "Qaytarilgan tanga", bg: "bg-sky-50 text-sky-700 border-sky-200" };
+                else if (tx.type === "profile_completion_reward") typeBadge = { label: "Profil bonusi", bg: "bg-amber-50 text-amber-700 border-amber-200" };
+                else if (tx.type === "admin_adjustment") typeBadge = { label: "Admin sozlamasi", bg: "bg-slate-100 text-slate-700 border-slate-200" };
+
+                return (
+                  <div key={tx.id} className="bg-white rounded-2xl p-3.5 border border-gray-150 shadow-xs flex flex-col gap-2 hover:border-gray-300 transition-colors">
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center text-lg flex-shrink-0">
+                        {tx.categoryEmoji || (isIn ? "💳" : "📤")}
+                      </div>
+
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-gray-800 text-xs truncate">{tx.categoryName}</p>
-                        <p className="text-[10px] text-gray-400">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${typeBadge.bg}`}>
+                            {typeBadge.label}
+                          </span>
+                          {tx.orderProvider && (
+                            <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold border ${
+                              tx.orderProvider === "click"
+                                ? "bg-blue-50 text-blue-700 border-blue-200"
+                                : tx.orderProvider === "payme"
+                                ? "bg-cyan-50 text-cyan-700 border-cyan-200"
+                                : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            }`}>
+                              {tx.orderProvider === "click" ? "Click" : tx.orderProvider === "payme" ? "Payme" : "Bepul"}
+                            </span>
+                          )}
+                          {(tx.priceSom || tx.orderAmountSom) ? (
+                            <span className="px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-gray-100 text-gray-700">
+                              {(tx.priceSom ?? tx.orderAmountSom)!.toLocaleString()} so'm
+                            </span>
+                          ) : null}
+                        </div>
+
+                        <p className="font-bold text-gray-900 text-xs mt-1 leading-snug">
+                          {tx.categoryName}
+                        </p>
+
+                        {/* Extra details (request customer, reason, etc) */}
+                        {tx.requestCustomer && (
+                          <p className="text-[11px] text-gray-500 mt-0.5">
+                            👤 Mijoz: <span className="font-semibold text-gray-700">{tx.requestCustomer}</span>
+                          </p>
+                        )}
+                        {tx.description && tx.description !== tx.categoryName && (
+                          <p className="text-[11px] text-gray-500 mt-0.5 italic">
+                            📝 {tx.description}
+                          </p>
+                        )}
+
+                        <p className="text-[10px] text-gray-400 mt-1">
                           {new Date(tx.createdAt).toLocaleDateString("uz-UZ")}&ensp;
                           {new Date(tx.createdAt).toLocaleTimeString("uz-Latn-UZ", { hour: "2-digit", minute: "2-digit" })}
                         </p>
                       </div>
-                      <span className={`font-extrabold text-sm flex-shrink-0 ${isIn ? "text-emerald-600" : "text-amber-600"}`}>
-                        {isIn ? "+" : "−"}{Math.abs(signed)} <TangaCoin size="xs" />
-                      </span>
-                      {offer && (
-                        <button
-                          onClick={() => setViewOfferId(offer.id)}
-                          className="px-2 py-1 rounded-lg bg-violet-50 text-violet-600 text-[10px] font-bold hover:bg-violet-100 transition-colors border border-violet-100 flex-shrink-0">
-                          Batafsil
-                        </button>
-                      )}
+
+                      <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                        <span className={`font-black text-sm flex items-center gap-0.5 ${isIn ? "text-emerald-600" : "text-red-500"}`}>
+                          {isIn ? "+" : "−"}{Math.abs(tx.amount)} <TangaCoin size="xs" />
+                        </span>
+
+                        {(offer || tx.offerId) && (
+                          <button
+                            onClick={() => setViewOfferId(offer ? offer.id : tx.offerId)}
+                            className="px-2 py-1 rounded-lg bg-violet-50 text-violet-600 text-[10px] font-bold hover:bg-violet-100 transition-colors border border-violet-100">
+                            Taklifni ko'rish
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  );
-                })}
-              </div>
+                  </div>
+                );
+              })
             )}
           </div>
         </motion.div>
@@ -4038,24 +4225,30 @@ function backendTxsToLocal(txs: BackendTangaTx[]): TangaTx[] {
     let categoryEmoji = "🪙";
 
     switch (tx.type) {
-      case "purchase":
-        categoryName = tx.tierName ? `${tx.tierName} xaridi` : (tx.description || "Tanga xaridi");
+      case "purchase": {
+        const providerLabel = tx.orderProvider === "click" ? "Click" : tx.orderProvider === "payme" ? "Payme" : tx.orderProvider === "free" ? "Bepul" : "";
+        categoryName = tx.tierName
+          ? `Tarif xaridi: ${tx.tierName}${providerLabel ? ` (${providerLabel})` : ""}`
+          : (tx.description || `Tanga xaridi${providerLabel ? ` (${providerLabel})` : ""}`);
         categoryEmoji = "💳";
         break;
-      case "spend":
-        categoryName = tx.description ? `Taklif: ${tx.description}` : "Taklif yuborish";
+      }
+      case "spend": {
+        const cat = tx.requestCategory || tx.description;
+        categoryName = cat ? `Taklif: ${cat}` : "Taklif yuborish";
         categoryEmoji = "📤";
         break;
+      }
       case "referral":
         categoryName = tx.description || "Referral mukofoti";
         categoryEmoji = "🔗";
         break;
       case "refund":
-        categoryName = tx.description || "Qaytarilgan tanga";
+        categoryName = tx.description || (tx.requestCategory ? `Qaytarildi: ${tx.requestCategory}` : "Qaytarilgan tanga");
         categoryEmoji = "↩️";
         break;
       case "profile_completion_reward":
-        categoryName = tx.description || "Profil to'ldirish bonusi";
+        categoryName = tx.description || "Profil 100% to'ldirish bonusi";
         categoryEmoji = "🎖";
         break;
       case "admin_adjustment":
@@ -4078,8 +4271,14 @@ function backendTxsToLocal(txs: BackendTangaTx[]): TangaTx[] {
       amount: tx.amount,
       type: tx.type,
       direction: tx.direction,
-      priceSom: tx.priceSom ?? undefined,
+      priceSom: tx.priceSom ?? tx.orderAmountSom ?? undefined,
       createdAt: tx.createdAt,
+      tierName: tx.tierName,
+      orderProvider: tx.orderProvider,
+      orderAmountSom: tx.orderAmountSom,
+      orderStatus: tx.orderStatus,
+      requestCategory: tx.requestCategory,
+      requestCustomer: tx.requestCustomer,
     };
   });
 }
@@ -5215,6 +5414,7 @@ function MonoBalances({ providers, reload }: { providers: ProviderSummary[]; rel
   const [adjustId, setAdjustId]     = useState<string | null>(null);
   const [adjustAmt, setAdjustAmt]   = useState(0);
   const [adjustType, setAdjustType] = useState<"add" | "remove">("add");
+  const [adjustReasonPreset, setAdjustReasonPreset] = useState("Bonus / Rag'bat");
 
   const filtered = providers.filter((p) => {
     if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !p.userId.includes(search)) return false;
@@ -5227,15 +5427,15 @@ function MonoBalances({ providers, reload }: { providers: ProviderSummary[]; rel
   async function applyAdjust(userId: string, name: string) {
     if (adjustAmt <= 0) return;
     const direction = adjustType === "add" ? "in" : "out";
-    const reason = adjustType === "add" ? `Admin +${adjustAmt} Tanga qo'shdi` : `Admin −${adjustAmt} Tanga ayirdi`;
+    const reason = adjustReasonPreset;
     try {
       await adjustWalletBalanceBackend(userId, adjustAmt, direction, reason);
       logAction({
         actorId: ADMIN_USER, actorRole: "admin",
         action: adjustType === "add" ? "ADMIN_ADD_TANGA" : "ADMIN_REMOVE_TANGA",
         category: "financial", targetId: userId, targetType: "tanga",
-        description: adjustType === "add" ? `${name}ga +${adjustAmt} Tanga qo'shildi` : `${name}dan −${adjustAmt} Tanga ayirildi`,
-        metadata: { amount: adjustAmt },
+        description: adjustType === "add" ? `${name}ga +${adjustAmt} Tanga qo'shildi (${reason})` : `${name}dan −${adjustAmt} Tanga ayirildi (${reason})`,
+        metadata: { amount: adjustAmt, reason },
       });
       setAdjustId(null); setAdjustAmt(0);
       reload();
@@ -5310,12 +5510,19 @@ function MonoBalances({ providers, reload }: { providers: ProviderSummary[]; rel
                     <td className="px-3 py-3 text-[11px] font-semibold text-blue-600">+{p.referralEarned} 🪙</td>
                     <td className="px-3 py-3">
                       {adjustId === p.userId ? (
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <select value={adjustType} onChange={(e) => setAdjustType(e.target.value as "add" | "remove")} className="text-[10px] px-2 py-1 rounded-lg border border-gray-200 text-gray-900 bg-white focus:outline-none">
-                            <option value="add">Qo'shish</option>
-                            <option value="remove">Ayirish</option>
+                            <option value="add">+ Qo'shish</option>
+                            <option value="remove">− Ayirish</option>
                           </select>
                           <input type="number" min={1} value={adjustAmt || ""} onChange={(e) => setAdjustAmt(Number(e.target.value))} placeholder="🪙" className="w-14 text-xs px-2 py-1 rounded-lg border border-gray-200 text-gray-900 bg-white focus:outline-none focus:border-red-400" />
+                          <select value={adjustReasonPreset} onChange={(e) => setAdjustReasonPreset(e.target.value)} className="text-[10px] px-2 py-1 rounded-lg border border-gray-200 text-gray-900 bg-white focus:outline-none">
+                            <option value="Bonus / Rag'bat">🎁 Bonus</option>
+                            <option value="Kompensatsiya">🤝 Kompensatsiya</option>
+                            <option value="Sinov / Test">🧪 Sinov</option>
+                            <option value="Xatolik tuzatish">⚙️ Xatolik</option>
+                            <option value="Jarima / Qoidabuzarlik">⚠️ Jarima</option>
+                          </select>
                           <button onClick={() => applyAdjust(p.userId, p.name)} className="px-2 py-1 rounded-lg bg-emerald-500 text-white text-[10px] font-bold hover:bg-emerald-600">✓</button>
                           <button onClick={() => { setAdjustId(null); setAdjustAmt(0); }} className="px-2 py-1 rounded-lg bg-gray-100 text-gray-600 text-[10px] font-bold hover:bg-gray-200">✕</button>
                         </div>

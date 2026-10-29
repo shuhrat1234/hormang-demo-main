@@ -513,7 +513,12 @@ function CategoriesSection() {
         >
           <span className="pill-label mb-5 inline-flex">{t.landing.categories.pill}</span>
           <h2 className="text-3xl md:text-4xl font-extrabold mb-3 text-gray-900">
-            <span className="text-gradient">{t.landing.categories.titleA}</span> {t.landing.categories.titleB}
+            <span className="text-gradient">
+              {activeCategories.length > 0
+                ? (locale === "uz" ? `${activeCategories.length} ta` : `${activeCategories.length}`)
+                : t.landing.categories.titleA}
+            </span>{" "}
+            {t.landing.categories.titleB}
           </h2>
           <p className="text-gray-500 max-w-xl mx-auto text-base leading-relaxed">
             {t.landing.categories.desc}

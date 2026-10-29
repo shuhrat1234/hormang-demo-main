@@ -25,6 +25,12 @@ export interface TangaTransaction {
   /** Purchase source for analytics. */
   source?: "normal_purchase" | "discount_campaign" | "referral_bonus" | "admin_grant";
   createdAt: string;
+  tierName?: string | null;
+  orderProvider?: "payme" | "click" | "free" | null;
+  orderAmountSom?: number | null;
+  orderStatus?: string | null;
+  requestCategory?: string | null;
+  requestCustomer?: string | null;
 }
 
 function readAll(): TangaTransaction[] {

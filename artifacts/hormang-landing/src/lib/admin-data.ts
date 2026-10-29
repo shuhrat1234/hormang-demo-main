@@ -74,6 +74,11 @@ export interface BackendTangaTx {
   tierName?: string | null;
   offerId?: string | null;
   requestId?: string | null;
+  orderProvider?: "payme" | "click" | "free" | null;
+  orderAmountSom?: number | null;
+  orderStatus?: string | null;
+  requestCategory?: string | null;
+  requestCustomer?: string | null;
 }
 export function fetchAllWalletTransactions() {
   return adminFetch<{ transactions: BackendTangaTx[] }>("/admin/wallets/transactions");

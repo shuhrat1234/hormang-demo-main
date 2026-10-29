@@ -129,7 +129,7 @@ export function RequestPreviewModal({ req, onClose }: Props) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center"
+      className="fixed inset-0 bg-black/50 z-[60] flex items-end justify-center"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <motion.div
@@ -238,7 +238,7 @@ export function RequestPreviewModal({ req, onClose }: Props) {
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-4 border-t border-gray-100 flex-shrink-0">
+        <div className="px-5 pt-4 pb-[calc(env(safe-area-inset-bottom,0px)+1rem)] border-t border-gray-100 flex-shrink-0">
           <button
             onClick={onClose}
             className="w-full h-11 rounded-2xl bg-gray-100 text-sm font-bold text-gray-600 hover:bg-gray-200 transition-colors"
