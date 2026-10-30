@@ -135,14 +135,15 @@ function MsgBubble({
   const tt = t.chatPage;
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bubbleRef = useRef<HTMLDivElement>(null);
-  const [popupBelow, setPopupBelow] = useState(false);
+  const [popupBelow, setPopupBelow] = useState(true);
 
   useEffect(() => {
     if (!selected) return;
     const el = bubbleRef.current;
     if (!el) return;
     const { top } = el.getBoundingClientRect();
-    setPopupBelow(top < 220);
+    // Header is ~70px and popup is ~170px. If bubble top is < 270px, open downwards
+    setPopupBelow(top < 270);
   }, [selected]);
 
   if (msg.sender === "system") {
@@ -167,7 +168,14 @@ function MsgBubble({
 
   function startPress() {
     if (!onLongPress) return;
-    pressTimer.current = setTimeout(() => { onLongPress(); }, 400);
+    pressTimer.current = setTimeout(() => {
+      const el = bubbleRef.current;
+      if (el) {
+        const { top } = el.getBoundingClientRect();
+        setPopupBelow(top < 270);
+      }
+      onLongPress();
+    }, 400);
   }
   function endPress() {
     if (pressTimer.current) { clearTimeout(pressTimer.current); pressTimer.current = null; }
@@ -181,19 +189,21 @@ function MsgBubble({
       transition={{ duration: 0.18 }}
       className={`flex ${isMe ? "justify-end" : "justify-start"} ${isFirst ? "" : "mt-1"} relative ${selected ? "z-30" : "z-0"}`}
       style={{ zIndex: selected ? 30 : undefined }}
-      onPointerDown={startPress}
+      onPointerDown={selected ? undefined : startPress}
       onPointerUp={endPress}
       onPointerLeave={endPress}
     >
       {selected && (
-        <div className={`absolute ${popupBelow ? "top-full mt-1.5" : "bottom-full mb-1.5"} z-40 flex flex-col bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden min-w-[168px] ${isMe ? "right-0" : "left-0"}`}>
+        <div
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+          className={`absolute ${popupBelow ? "top-full mt-1.5" : "bottom-full mb-1.5"} z-40 flex flex-col bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden min-w-[168px] ${isMe ? "right-0" : "left-0"}`}
+        >
           {canDeleteForEveryone && (
             <button
               type="button"
-              onPointerDown={(e) => e.stopPropagation()}
-              onTouchStart={(e) => e.stopPropagation()}
               onClick={(e) => { e.stopPropagation(); onDeleteForEveryone?.(); }}
-              className="flex items-center gap-2.5 px-3.5 py-2.5 text-red-500 text-xs font-semibold hover:bg-red-50 active:bg-red-100 transition-colors w-full text-left"
+              className="flex items-center gap-2.5 px-3.5 py-2.5 text-red-500 text-xs font-semibold hover:bg-red-50 active:bg-red-100 transition-colors w-full text-left cursor-pointer"
             >
               <Trash2 className="w-3.5 h-3.5 flex-shrink-0" />
               {tt.deleteForEveryone}
@@ -201,10 +211,8 @@ function MsgBubble({
           )}
           <button
             type="button"
-            onPointerDown={(e) => e.stopPropagation()}
-            onTouchStart={(e) => e.stopPropagation()}
             onClick={(e) => { e.stopPropagation(); onDeleteForMe?.(); }}
-            className={`flex items-center gap-2.5 px-3.5 py-2.5 text-gray-600 text-xs font-semibold hover:bg-gray-50 active:bg-gray-100 transition-colors w-full text-left ${canDeleteForEveryone ? "border-t border-gray-100" : ""}`}
+            className={`flex items-center gap-2.5 px-3.5 py-2.5 text-gray-600 text-xs font-semibold hover:bg-gray-50 active:bg-gray-100 transition-colors w-full text-left cursor-pointer ${canDeleteForEveryone ? "border-t border-gray-100" : ""}`}
           >
             <EyeOff className="w-3.5 h-3.5 flex-shrink-0" />
             {tt.deleteForMe}
@@ -212,10 +220,8 @@ function MsgBubble({
           {msg.text && !msg.deletedForEveryone && (
             <button
               type="button"
-              onPointerDown={(e) => e.stopPropagation()}
-              onTouchStart={(e) => e.stopPropagation()}
               onClick={(e) => { e.stopPropagation(); onCopy?.(); }}
-              className="flex items-center gap-2.5 px-3.5 py-2.5 text-gray-600 text-xs font-semibold hover:bg-gray-50 active:bg-gray-100 transition-colors border-t border-gray-100 w-full text-left"
+              className="flex items-center gap-2.5 px-3.5 py-2.5 text-gray-600 text-xs font-semibold hover:bg-gray-50 active:bg-gray-100 transition-colors border-t border-gray-100 w-full text-left cursor-pointer"
             >
               <Copy className="w-3.5 h-3.5 flex-shrink-0" />
               {tt.copy}
@@ -577,7 +583,11 @@ function ChatView({ chatId, onClose }: { chatId: string; onClose: () => void }) 
 
   const defaultLocation = [request?.district, request?.region].filter(Boolean).join(", ");
 
-  const visibleMessages = chat.messages.filter((m) => new Date(m.timestamp).getTime() > chat.providerClearedAt);
+  const visibleMessages = chat.messages.filter(
+    (m) =>
+      new Date(m.timestamp).getTime() > chat.providerClearedAt &&
+      !(masterId && m.deletedForUsers?.includes(masterId))
+  );
 
   const grouped: Array<{ day: string; messages: ProviderChatMessage[] }> = [];
   for (const msg of visibleMessages) {
@@ -593,7 +603,7 @@ function ChatView({ chatId, onClose }: { chatId: string; onClose: () => void }) 
       animate={{ x: 0 }}
       exit={{ x: "100%" }}
       transition={{ type: "spring", stiffness: 400, damping: 35 }}
-      className="fixed inset-x-0 top-0 bottom-0 bg-gray-50 z-40 flex flex-col"
+      className="fixed inset-x-0 top-0 bottom-0 bg-gray-50 z-50 flex flex-col"
     >
       <div className="bg-white border-b border-gray-100 shrink-0 z-10 shadow-sm">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
@@ -714,12 +724,12 @@ function ChatView({ chatId, onClose }: { chatId: string; onClose: () => void }) 
                     onDeleteForMe={() => {
                       setChat((prev) => prev ? {
                         ...prev,
-                        messages: prev.messages.map((m) =>
-                          m.id === msg.id ? { ...m, deletedForUsers: [...(m.deletedForUsers ?? []), masterId] } : m
-                        ),
+                        messages: prev.messages.filter((m) => m.id !== msg.id),
                       } : prev);
                       setSelectedMsgId(null);
-                      deleteMessageForMe(chat.id, msg.id).then(loadChat);
+                      deleteMessageForMe(chat.id, msg.id).then((ok) => {
+                        if (!ok) loadChat();
+                      });
                     }}
                     onCopy={() => {
                       if (msg.text) {
@@ -739,7 +749,7 @@ function ChatView({ chatId, onClose }: { chatId: string; onClose: () => void }) 
       </div>
 
       {isRejected ? (
-        <div className="bg-red-50 border-t border-red-100 pb-16">
+        <div className="bg-red-50 border-t border-red-100 pb-[calc(env(safe-area-inset-bottom,0px)+0.5rem)]">
           <div className="max-w-lg mx-auto px-4 py-4 flex items-center justify-center gap-2">
             <X className="w-4 h-4 text-red-400 flex-shrink-0" />
             <p className="text-sm font-semibold text-red-500">
@@ -748,7 +758,7 @@ function ChatView({ chatId, onClose }: { chatId: string; onClose: () => void }) 
           </div>
         </div>
       ) : (
-        <div className="shrink-0 bg-white border-t border-gray-100 z-20 pb-16">
+        <div className="shrink-0 bg-white border-t border-gray-100 z-20 pb-[calc(env(safe-area-inset-bottom,0px)+0.5rem)]">
           {attachPreview && (
             <div className="max-w-lg mx-auto px-4 pt-2">
               <div className="relative inline-block">
@@ -1323,7 +1333,7 @@ export default function ProviderChatsPage() {
         )}
       </AnimatePresence>
 
-      <BottomNav />
+      {!openChatId && <BottomNav />}
     </div>
   );
 }

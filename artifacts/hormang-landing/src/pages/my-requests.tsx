@@ -55,7 +55,7 @@ function ConfirmModal({ title, body, cancelLabel, confirmLabel, danger, onCancel
   danger?: boolean; onCancel: () => void; onConfirm: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center p-4 bg-black/40" onClick={onCancel}>
+    <div className="fixed inset-0 z-[60] flex items-end justify-center p-4 pb-[calc(env(safe-area-inset-bottom,0px)+1rem)] bg-black/40" onClick={onCancel}>
       <motion.div
         initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 24 }}
         className="w-full max-w-sm bg-white rounded-2xl p-5 shadow-xl"

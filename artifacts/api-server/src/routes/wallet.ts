@@ -217,29 +217,46 @@ router.get("/referral-stats", requireAuth, async (req: AuthRequest, res) => {
 });
 
 async function executeFreeClaim(tier: PricingTier, userId: string) {
-  // Check per-user limit
-  if (tier.perUserLimit != null) {
-    const paidOrders = await db
-      .select({ id: paymentOrdersTable.id })
-      .from(paymentOrdersTable)
-      .where(and(
-        eq(paymentOrdersTable.userId, userId),
-        eq(paymentOrdersTable.tierId, tier.id),
-        eq(paymentOrdersTable.status, "paid"),
-      ));
-    if (paidOrders.length >= tier.perUserLimit) {
-      throw new Error("Ushbu bepul tarifdan foydalanish limiti tugagan");
-    }
-  }
-
-  // Check sale limit
-  if (tier.saleLimit != null && tier.salePurchaseCount >= tier.saleLimit) {
-    throw new Error("Bepul tarif uchun ajratilgan o'rinlar tugagan");
-  }
-
   const totalCredits = tier.credits + (tier.bonusTokens ?? 0);
 
   return await db.transaction(async (tx) => {
+    // 0. Lock user row to serialize concurrent claims for the same user
+    await tx
+      .select({ id: usersTable.id })
+      .from(usersTable)
+      .where(eq(usersTable.id, userId))
+      .for("update");
+
+    // Check promotional sale limit inside transaction with row lock
+    if (tier.saleLimit != null) {
+      const [lockedTier] = await tx
+        .select()
+        .from(pricingTiersTable)
+        .where(eq(pricingTiersTable.id, tier.id))
+        .for("update");
+
+      if (lockedTier && lockedTier.salePurchaseCount >= lockedTier.saleLimit) {
+        throw new Error("Bepul tarif uchun ajratilgan o'rinlar tugagan");
+      }
+    }
+
+    // Check per-user limit inside transaction
+    if (tier.perUserLimit != null) {
+      const paidOrders = await tx
+        .select({ id: paymentOrdersTable.id })
+        .from(paymentOrdersTable)
+        .where(and(
+          eq(paymentOrdersTable.userId, userId),
+          eq(paymentOrdersTable.tierId, tier.id),
+          eq(paymentOrdersTable.status, "paid"),
+        ))
+        .for("update");
+
+      if (paidOrders.length >= tier.perUserLimit) {
+        throw new Error("Ushbu bepul tarifdan foydalanish limiti tugagan");
+      }
+    }
+
     // 1. Create order marked as paid with provider: "free"
     const [order] = await tx
       .insert(paymentOrdersTable)
@@ -254,7 +271,7 @@ async function executeFreeClaim(tier: PricingTier, userId: string) {
       .returning();
 
     // 2. Update wallet balance
-    const [wallet] = await tx.select().from(walletsTable).where(eq(walletsTable.userId, userId)).limit(1);
+    const [wallet] = await tx.select().from(walletsTable).where(eq(walletsTable.userId, userId)).for("update").limit(1);
     const nextBalance = (wallet?.balance ?? 0) + totalCredits;
     if (wallet) {
       await tx.update(walletsTable).set({ balance: nextBalance, updatedAt: new Date() }).where(eq(walletsTable.userId, userId));

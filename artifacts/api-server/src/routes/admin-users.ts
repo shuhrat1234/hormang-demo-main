@@ -20,7 +20,7 @@ router.get("/", async (_req, res) => {
       db.select().from(usersTable),
       db.select().from(userModerationTable),
       db.select().from(walletsTable),
-      db.select({ userId: providerProfilesTable.userId }).from(providerProfilesTable),
+      db.select().from(providerProfilesTable),
       db.selectDistinct({ masterId: offersTable.masterId }).from(offersTable),
     ]);
     const providerUserIds = new Set([
@@ -29,10 +29,12 @@ router.get("/", async (_req, res) => {
     ]);
     const modByUser = new Map(moderations.map((m) => [m.userId, m]));
     const walletByUser = new Map(wallets.map((w) => [w.userId, w.balance]));
+    const profileByUser = new Map(providerProfiles.map((p) => [p.userId, p]));
 
     res.json({
       users: users.map((u) => {
         const mod = modByUser.get(u.id);
+        const profile = profileByUser.get(u.id);
         const isProvider = u.role === "provider" || providerUserIds.has(u.id);
         const role = isProvider ? "provider" : u.role;
         if (u.role === "buyer" && isProvider) {
@@ -54,6 +56,13 @@ router.get("/", async (_req, res) => {
           flagCount: mod?.flagCount ?? 0,
           tags: mod?.tags ?? [],
           adminNotes: mod?.adminNotes ?? [],
+          profileRewardGranted: !!u.profileBonusGrantedAt,
+          profileRewardGrantedAt: u.profileBonusGrantedAt?.toISOString() ?? null,
+          categories: profile?.categories ?? [],
+          region: profile?.region ?? null,
+          district: profile?.district ?? null,
+          serviceAreaV2: profile?.serviceAreaV2 ?? null,
+          photoUrl: profile?.photoUrl ?? null,
         };
       }),
     });

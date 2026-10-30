@@ -87,7 +87,7 @@ export function BottomSheet({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/40 dark:bg-black/60 z-50"
+            className="fixed inset-0 bg-black/40 dark:bg-black/60 z-[60]"
             aria-hidden="true"
           />
           <motion.div
@@ -101,7 +101,7 @@ export function BottomSheet({
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", stiffness: 380, damping: 36, mass: 0.8 }}
-            className="fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-[hsl(var(--surface))] rounded-t-3xl shadow-[0_-12px_40px_rgba(0,0,0,0.18)] flex flex-col focus:outline-none"
+            className="fixed inset-x-0 bottom-0 z-[61] bg-white dark:bg-[hsl(var(--surface))] rounded-t-3xl shadow-[0_-12px_40px_rgba(0,0,0,0.18)] flex flex-col focus:outline-none"
             style={{ maxHeight }}
           >
             <div className="pt-3 pb-2 flex justify-center flex-shrink-0">
@@ -132,7 +132,7 @@ export function BottomSheet({
                 )}
               </div>
             )}
-            <div className="overflow-y-auto px-5 pb-8 flex-1">{children}</div>
+            <div className="overflow-y-auto px-5 pb-[calc(env(safe-area-inset-bottom,0px)+2rem)] flex-1">{children}</div>
           </motion.div>
         </>
       )}

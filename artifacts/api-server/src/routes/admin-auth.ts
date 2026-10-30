@@ -9,7 +9,7 @@ router.post("/login", (req, res) => {
   try {
     const { username, password } = req.body as { username?: string; password?: string };
 
-    if (!password) {
+    if (!password || typeof password !== "string" || !password.trim()) {
       res.status(400).json({ error: "Parol talab qilinadi" });
       return;
     }
@@ -19,10 +19,8 @@ router.post("/login", (req, res) => {
     const expectedPassword = process.env.ADMIN_PASSWORD || expectedAdminKey;
 
     const isValid =
-      password === expectedAdminKey ||
-      password === expectedPassword ||
-      (username === expectedUsername && password === expectedPassword) ||
-      password === "hormang2024";
+      (username ? username === expectedUsername : true) &&
+      (password === expectedPassword || password === expectedAdminKey);
 
     if (!isValid) {
       res.status(401).json({ error: "Noto'g'ri login yoki parol" });

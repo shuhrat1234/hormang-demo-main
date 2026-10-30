@@ -37,6 +37,8 @@ const GLOBAL_KEYS_TO_CLEAR_ON_USER_SWITCH: string[] = [
   "hormang_active_role",     // legacy global role (before per-user keys)
   "activeRole",              // potential legacy key
   "currentUser",             // potential legacy key
+  "hormang_phone_registry",
+  "hormang_customer_registry",
 ];
 
 /**

@@ -203,7 +203,7 @@ function AddPhoneModal({ onClose, onSuccess }: { onClose: () => void; onSuccess:
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+    <div className="fixed inset-0 bg-black/40 z-[60] flex items-center justify-center p-4"
       onClick={(e) => e.target === e.currentTarget && onClose()}>
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
         className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">

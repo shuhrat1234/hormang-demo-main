@@ -6,6 +6,9 @@ import router from "./routes/index.js";
 
 const app: Express = express();
 
+// Trust reverse proxy (Nginx / Cloudflare) so req.ip and rate limiters see the real client IP
+app.set("trust proxy", 1);
+
 // S18: Security headers via helmet
 app.use(
   helmet({
@@ -22,6 +25,8 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
       "http://localhost:3000",
       "https://hormang.uz",
       "https://www.hormang.uz",
+      "https://hormang.co.uz",
+      "https://www.hormang.co.uz",
     ];
 
 // S14: Strict CORS policy

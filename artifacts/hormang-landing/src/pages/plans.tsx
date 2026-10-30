@@ -278,7 +278,7 @@ function PaymentMethodSheet({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center"
+      className="fixed inset-0 z-[60] bg-black/40 flex items-end sm:items-center justify-center"
       onClick={onClose}
     >
       <motion.div
@@ -286,7 +286,7 @@ function PaymentMethodSheet({
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 40, opacity: 0 }}
         onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-sm p-5 pb-[calc(env(safe-area-inset-bottom)+20px)] sm:pb-5"
+        className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-sm p-5 pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)] sm:pb-5"
       >
         <div className="flex items-center justify-between mb-4">
           <p className="font-extrabold text-sm text-gray-900">{tt.choosePaymentMethod}</p>

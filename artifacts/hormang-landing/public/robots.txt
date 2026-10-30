@@ -1,5 +1,9 @@
 User-agent: *
 Allow: /
+Allow: /favicon.ico
+Allow: /icon-*.png
+Allow: /apple-touch-icon.png
+Allow: /opengraph.jpg
 Disallow: /admin
 Disallow: /dashboard
 Disallow: /settings
@@ -7,5 +11,8 @@ Disallow: /profile
 Disallow: /chat
 Disallow: /my-requests
 Disallow: /provider/
+
+User-agent: Googlebot-Image
+Allow: /
 
 Sitemap: https://hormang.co.uz/sitemap.xml

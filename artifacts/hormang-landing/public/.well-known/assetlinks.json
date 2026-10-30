@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "uz.co.hormang.twa",
+    "sha256_cert_fingerprints": ["60:AA:09:58:92:B4:80:95:91:35:EC:74:BF:29:F9:86:F3:AC:08:97:B5:BB:40:E5:64:35:EF:8D:DB:F7:DB:5A"]
+  }
+}]

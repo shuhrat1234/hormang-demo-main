@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq, desc } from "drizzle-orm";
-import { db, walletsTable, usersTable, tangaTransactionsTable, paymentOrdersTable, pricingTiersTable, referralsTable } from "@workspace/db";
+import { db, walletsTable, usersTable, tangaTransactionsTable, paymentOrdersTable, pricingTiersTable, referralsTable, requestsTable } from "@workspace/db";
 import { requireAdminKey } from "../middlewares/admin.js";
 
 const router: IRouter = Router();
@@ -60,14 +60,31 @@ router.get("/transactions", async (_req, res) => {
         lastName: usersTable.lastName,
         phone: usersTable.phone,
         tierName: pricingTiersTable.nameUz,
+        orderProvider: paymentOrdersTable.provider,
+        orderAmountSom: paymentOrdersTable.amountSom,
+        orderStatus: paymentOrdersTable.status,
+        requestCategory: requestsTable.categoryName,
+        requestCustomer: requestsTable.customerName,
       })
       .from(tangaTransactionsTable)
       .leftJoin(usersTable, eq(usersTable.id, tangaTransactionsTable.userId))
       .leftJoin(paymentOrdersTable, eq(paymentOrdersTable.id, tangaTransactionsTable.orderId))
       .leftJoin(pricingTiersTable, eq(pricingTiersTable.id, paymentOrdersTable.tierId))
+      .leftJoin(requestsTable, eq(requestsTable.id, tangaTransactionsTable.requestId))
       .orderBy(desc(tangaTransactionsTable.createdAt));
     res.json({
-      transactions: rows.map((r) => ({ ...r.tx, firstName: r.firstName, lastName: r.lastName, phone: r.phone, tierName: r.tierName })),
+      transactions: rows.map((r) => ({
+        ...r.tx,
+        firstName: r.firstName,
+        lastName: r.lastName,
+        phone: r.phone,
+        tierName: r.tierName,
+        orderProvider: r.orderProvider,
+        orderAmountSom: r.orderAmountSom,
+        orderStatus: r.orderStatus,
+        requestCategory: r.requestCategory,
+        requestCustomer: r.requestCustomer,
+      })),
     });
   } catch (err) {
     console.error("List all admin wallet transactions error:", err);
@@ -94,13 +111,29 @@ router.get("/:userId/transactions", async (req, res) => {
       .select({
         tx: tangaTransactionsTable,
         tierName: pricingTiersTable.nameUz,
+        orderProvider: paymentOrdersTable.provider,
+        orderAmountSom: paymentOrdersTable.amountSom,
+        orderStatus: paymentOrdersTable.status,
+        requestCategory: requestsTable.categoryName,
+        requestCustomer: requestsTable.customerName,
       })
       .from(tangaTransactionsTable)
       .leftJoin(paymentOrdersTable, eq(paymentOrdersTable.id, tangaTransactionsTable.orderId))
       .leftJoin(pricingTiersTable, eq(pricingTiersTable.id, paymentOrdersTable.tierId))
+      .leftJoin(requestsTable, eq(requestsTable.id, tangaTransactionsTable.requestId))
       .where(eq(tangaTransactionsTable.userId, userId))
       .orderBy(desc(tangaTransactionsTable.createdAt));
-    res.json({ transactions: rows.map((r) => ({ ...r.tx, tierName: r.tierName })) });
+    res.json({
+      transactions: rows.map((r) => ({
+        ...r.tx,
+        tierName: r.tierName,
+        orderProvider: r.orderProvider,
+        orderAmountSom: r.orderAmountSom,
+        orderStatus: r.orderStatus,
+        requestCategory: r.requestCategory,
+        requestCustomer: r.requestCustomer,
+      })),
+    });
   } catch (err) {
     console.error("Get admin wallet transactions error:", err);
     res.status(500).json({ error: "Xatolik yuz berdi" });

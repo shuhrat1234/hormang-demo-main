@@ -797,7 +797,7 @@ export const en: Dict = {
     },
     categories: {
       pill: "Categories",
-      titleA: "9",
+      titleA: "4",
       titleB: "service categories",
       desc: "Pick the category you need — the survey asks questions specific to it.",
       submitArrow: "Send request →",
@@ -806,11 +806,6 @@ export const en: Dict = {
         { id: "tozalash", name: "Cleaning", emoji: "🧹", desc: "Apartment, yard, office" },
         { id: "avto", name: "Auto service", emoji: "🚗", desc: "Diagnostics, wash, repair" },
         { id: "kochirish", name: "Moving / delivery", emoji: "🚚", desc: "Moving and transport" },
-        { id: "repetitor", name: "Tutors", emoji: "📚", desc: "Languages, math, music" },
-        { id: "tadbir", name: "Event services", emoji: "🎉", desc: "Wedding, birthday, corporate" },
-        { id: "gozallik", name: "Beauty", emoji: "💄", desc: "Manicure, hair, makeup" },
-        { id: "enaga", name: "Nanny", emoji: "👶", desc: "Childcare and elderly care" },
-        { id: "ustachilik", name: "Construction", emoji: "🏗️", desc: "Construction and finishing work" },
       ],
     },
     showcase: {
@@ -1889,6 +1884,7 @@ export const en: Dict = {
     DELETE_REQUEST_NOT_FOUND: "DELETE_REQUEST_NOT_FOUND",
     PHONE_BELONGS_TO_OTHER: "PHONE_BELONGS_TO_OTHER",
     PROVIDER_NOT_FOUND: "PROVIDER_NOT_FOUND",
+    RATE_LIMIT_EXCEEDED: "SMS limit exceeded. Please try again in a few minutes.",
   },
   offerBlock: {
     matched:        "OFFER_BLOCK_MATCHED",

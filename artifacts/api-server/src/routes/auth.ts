@@ -20,19 +20,57 @@ import crypto from "crypto";
 
 const router = Router();
 
+function normalizePhone(phone: string): string {
+  return phone.replace(/\s+/g, "").trim();
+}
+
+const REVIEWER_TEST_PHONE_DIGITS = "998901234567";
+const REVIEWER_TEST_OTP = "123456";
+
+function isReviewerPhone(phone: string): boolean {
+  const isReviewerBypassAllowed = !env.isProduction || process.env.ENABLE_REVIEWER_BYPASS === "true";
+  if (!isReviewerBypassAllowed) return false;
+  return phone.replace(/\D/g, "") === REVIEWER_TEST_PHONE_DIGITS;
+}
+
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
 // S7: Rate limiting for SMS and Auth endpoints
+// 1. Keyed by destination (phone / email) so one user's requests do not block other users
 const smsRateLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
   max: 5,
-  message: { error: "SMS yuborish chegarasi oshdi. Birozdan so'ng qayta urinib ko'ring." },
+  keyGenerator: (req) => {
+    const dest = req.body?.phone
+      ? normalizePhone(String(req.body.phone))
+      : req.body?.email
+      ? normalizeEmail(String(req.body.email))
+      : (req.ip || "unknown");
+    return dest;
+  },
+  validate: { xForwardedForHeader: false, default: true },
+  message: { error: "SMS yuborish chegarasi oshdi. Birozdan so'ng qayta urinib ko'ring.", code: "RATE_LIMIT_EXCEEDED" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// 2. Global per-IP rate limit for SMS/Email OTP (prevents spam attacks targeting different numbers)
+const otpIpRateLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 30,
+  validate: { xForwardedForHeader: false, default: true },
+  message: { error: "SMS yuborish chegarasi oshdi. Birozdan so'ng qayta urinib ko'ring.", code: "RATE_LIMIT_EXCEEDED" },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
 const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 25,
-  message: { error: "Juda ko'p urinishlar. Iltimos keyinroq qayta urinib ko'ring." },
+  max: 30,
+  validate: { xForwardedForHeader: false, default: true },
+  message: { error: "Juda ko'p urinishlar. Iltimos keyinroq qayta urinib ko'ring.", code: "RATE_LIMIT_EXCEEDED" },
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -41,14 +79,6 @@ const authRateLimiter = rateLimit({
 type OtpChannel = "sms" | "email";
 interface OtpEntry { code: string; expiresAt: number; purpose: string; channel: OtpChannel; attempts: number }
 const otpStore = new Map<string, OtpEntry>();
-
-function normalizePhone(phone: string): string {
-  return phone.replace(/\s+/g, "").trim();
-}
-
-function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase();
-}
 
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -116,6 +146,10 @@ function storeOtp(channel: OtpChannel, destination: string, purpose: string): st
 }
 
 function verifyOtp(channel: OtpChannel, destination: string, code: string, purpose: string): boolean {
+  const isReviewerBypassAllowed = !env.isProduction || process.env.ENABLE_REVIEWER_BYPASS === "true";
+  if (isReviewerBypassAllowed && channel === "sms" && isReviewerPhone(destination) && code === REVIEWER_TEST_OTP) {
+    return true;
+  }
   const enableDevOtp = process.env.ENABLE_DEV_OTP === "true" && !env.isProduction;
   if (enableDevOtp && channel === "sms" && code === "000000") {
     const key = otpKey(channel, destination);
@@ -174,7 +208,7 @@ async function getProviderProfile(userId: string) {
 }
 
 // ─── POST /sms/send ─────────────────────────────────────────────────────────
-router.post("/sms/send", smsRateLimiter, async (req, res) => {
+router.post("/sms/send", otpIpRateLimiter, smsRateLimiter, async (req, res) => {
   try {
     const { phone, purpose, forceSms } = req.body as { phone?: string; purpose?: string; forceSms?: boolean };
 
@@ -192,6 +226,30 @@ router.post("/sms/send", smsRateLimiter, async (req, res) => {
 
     if (!["register", "login", "migrate", "add-phone"].includes(purpose)) {
       res.status(400).json({ error: "Noto'g'ri maqsad" });
+      return;
+    }
+
+    if (isReviewerPhone(normalized)) {
+      if (purpose === "login") {
+        const [existingReviewer] = await db
+          .select({ id: usersTable.id })
+          .from(usersTable)
+          .where(eq(usersTable.phone, normalized))
+          .limit(1);
+
+        if (!existingReviewer) {
+          const passwordHash = await hashPassword(crypto.randomBytes(32).toString("hex"));
+          await db.insert(usersTable).values({
+            firstName: "Google",
+            lastName: "Reviewer",
+            phone: normalized,
+            passwordHash,
+            role: "buyer",
+          });
+        }
+      }
+      storeOtp("sms", normalized, purpose);
+      res.json({ ok: true, channel: "sms" });
       return;
     }
 
@@ -442,9 +500,10 @@ router.post("/register/provider-profile", requireAuth, async (req: AuthRequest, 
 router.post("/login", authRateLimiter, async (req, res) => {
   const { phone, otp } = req.body as { phone?: string; otp?: string };
   const normalized = normalizePhone(phone ?? "");
+  const isReviewer = isReviewerPhone(normalized);
   const { blocked, remaining } = checkRateLimit(normalized);
 
-  if (blocked) {
+  if (blocked && !isReviewer) {
     res.status(429).json({ error: `Juda ko'p urinish. ${remaining} soniyadan so'ng qayta urinib ko'ring.` });
     return;
   }
@@ -455,11 +514,26 @@ router.post("/login", authRateLimiter, async (req, res) => {
       return;
     }
 
-    const [user] = await db
+    let [user] = await db
       .select()
       .from(usersTable)
       .where(eq(usersTable.phone, normalized))
       .limit(1);
+
+    if (!user && isReviewer) {
+      const passwordHash = await hashPassword(crypto.randomBytes(32).toString("hex"));
+      const [created] = await db
+        .insert(usersTable)
+        .values({
+          firstName: "Google",
+          lastName: "Reviewer",
+          phone: normalized,
+          passwordHash,
+          role: "buyer",
+        })
+        .returning();
+      user = created;
+    }
 
     if (!user) {
       recordFailedAttempt(normalized);
@@ -514,7 +588,7 @@ router.post("/login", authRateLimiter, async (req, res) => {
 });
 
 // ─── POST /login-email/send (send a login code to a verified email, no phone) ─
-router.post("/login-email/send", smsRateLimiter, async (req, res) => {
+router.post("/login-email/send", otpIpRateLimiter, smsRateLimiter, async (req, res) => {
   try {
     const { email } = req.body as { email?: string };
     if (!email || !isValidEmail(email)) {

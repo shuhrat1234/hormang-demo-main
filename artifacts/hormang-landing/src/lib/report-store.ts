@@ -54,7 +54,7 @@ export async function submitReport(
 }
 
 export async function getReportCountForUser(userId: string): Promise<number> {
-  const { count } = await apiFetch<{ count: number }>(`/reports/count/${userId}`, { auth: false });
+  const { count } = await apiFetch<{ count: number }>(`/reports/count/${userId}`);
   return count;
 }
 

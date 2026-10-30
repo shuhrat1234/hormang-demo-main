@@ -327,22 +327,26 @@ router.delete("/messages/:messageId", requireAuth, async (req: AuthRequest, res)
       res.status(404).json({ error: "Chat topilmadi" });
       return;
     }
+    const isAdmin = req.user?.role === "admin";
     const role = await resolveRole(chat, req.user!.id);
-    if (!role) {
+    if (!role && !isAdmin) {
       res.status(403).json({ error: "Ruxsat yo'q" });
       return;
     }
 
     if (mode === "everyone") {
-      const isOwnMessage = (role === "master" && message.sender === "master") || (role === "customer" && message.sender === "customer");
+      const isOwnMessage = (role === "master" && message.sender === "master") || (role === "customer" && message.sender === "customer") || isAdmin;
       if (!isOwnMessage) {
         res.status(403).json({ error: "Faqat o'z xabaringizni hammaga o'chira olasiz" });
         return;
       }
       await db.update(chatMessagesTable).set({ deletedForEveryone: true, deletedAt: new Date(), text: null, attachmentUrl: null, attachmentType: null }).where(eq(chatMessagesTable.id, messageId));
     } else {
-      const nextDeletedFor = [...(message.deletedForUsers ?? [])];
-      if (!nextDeletedFor.includes(req.user!.id)) nextDeletedFor.push(req.user!.id);
+      const rawDeleted = message.deletedForUsers;
+      const nextDeletedFor: string[] = Array.isArray(rawDeleted) ? [...rawDeleted] : [];
+      if (!nextDeletedFor.includes(req.user!.id)) {
+        nextDeletedFor.push(req.user!.id);
+      }
       await db.update(chatMessagesTable).set({ deletedForUsers: nextDeletedFor }).where(eq(chatMessagesTable.id, messageId));
     }
     res.json({ ok: true });

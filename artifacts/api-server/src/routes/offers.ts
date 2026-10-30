@@ -334,10 +334,52 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
     const masterInitials = `${fInit}${lInit}`.toUpperCase();
     const masterColor = "#7C3AED";
 
+    let limitErrorReason: string | undefined;
     let insufficientBalance = false;
     let createdOffer: OfferRow | undefined;
 
     await db.transaction(async (tx) => {
+      // Lock target request row to serialize concurrent offer creations
+      const [lockedReq] = await tx
+        .select()
+        .from(requestsTable)
+        .where(eq(requestsTable.id, body.requestId!))
+        .for("update");
+
+      if (!lockedReq) {
+        limitErrorReason = "no_request";
+        return;
+      }
+      if (lockedReq.closedForOffers || lockedReq.acceptedOfferId || lockedReq.status === "matched") {
+        limitErrorReason = "matched";
+        return;
+      }
+      if (lockedReq.status !== "open") {
+        limitErrorReason = "request_closed";
+        return;
+      }
+
+      // Re-evaluate active offer limit inside transaction under row lock
+      const existingOffers = await tx
+        .select()
+        .from(offersTable)
+        .where(eq(offersTable.requestId, body.requestId!));
+
+      if (existingOffers.length >= MAX_LIFETIME_OFFERS) {
+        limitErrorReason = "lifetime_limit";
+        return;
+      }
+      const activeCount = existingOffers.filter((o) => ACTIVE_STATUSES.includes(o.status)).length;
+      if (activeCount >= MAX_ACTIVE_OFFERS) {
+        limitErrorReason = "active_limit";
+        return;
+      }
+      const dup = existingOffers.some((o) => o.masterId === masterId && ACTIVE_STATUSES.includes(o.status));
+      if (dup) {
+        limitErrorReason = "already_offered";
+        return;
+      }
+
       // S15: Atomic wallet debit to prevent race condition double-spend
       const updatedWallet = await tx
         .update(walletsTable)
@@ -369,7 +411,7 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
 
       await tx.insert(tangaTransactionsTable).values({
         userId: masterId, type: "spend", direction: "out", amount: costTanga,
-        description: check.request!.categoryName, offerId: offer.id, requestId: offer.requestId,
+        description: lockedReq.categoryName, offerId: offer.id, requestId: offer.requestId,
       });
 
       const chatId = `${offer.requestId}_${masterId}`;
@@ -385,6 +427,11 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
       });
       await tx.update(chatsTable).set({ customerUnread: sql`${chatsTable.customerUnread} + 1` }).where(eq(chatsTable.id, chatRow.id));
     });
+
+    if (limitErrorReason) {
+      res.status(400).json({ error: limitErrorReason });
+      return;
+    }
 
     if (insufficientBalance) {
       res.status(400).json({ error: "insufficient_balance" });

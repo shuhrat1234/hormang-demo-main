@@ -28,6 +28,10 @@ import { pool } from "@workspace/db";
         created_at timestamp NOT NULL DEFAULT now()
       );
     `);
+    await pool.query(`
+      UPDATE categories SET active = false WHERE id NOT IN ('tamirlash', 'tozalash', 'avto', 'kochirish');
+      UPDATE categories SET active = true WHERE id IN ('tamirlash', 'tozalash', 'avto', 'kochirish');
+    `);
   } catch (err) {
     console.error("Migration error ensureDbSchema:", err);
   }

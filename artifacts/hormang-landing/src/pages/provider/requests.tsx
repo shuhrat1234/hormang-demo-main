@@ -294,7 +294,7 @@ function OfferDetailModal({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center"
+        className="fixed inset-0 bg-black/50 z-[60] flex items-end justify-center"
         onClick={(e) => e.target === e.currentTarget && onClose()}
       >
         <motion.div
@@ -447,7 +447,7 @@ function OfferDetailModal({
             )}
           </div>
 
-          <div className="px-5 pb-6 pt-2 flex-shrink-0 border-t border-gray-100">
+          <div className="px-5 pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)] pt-2 flex-shrink-0 border-t border-gray-100">
             <button
               onClick={onClose}
               className="w-full h-11 rounded-2xl border-2 border-gray-200 font-bold text-sm text-gray-600 hover:bg-gray-50 transition-colors"

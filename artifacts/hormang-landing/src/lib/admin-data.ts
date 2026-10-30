@@ -74,6 +74,11 @@ export interface BackendTangaTx {
   tierName?: string | null;
   offerId?: string | null;
   requestId?: string | null;
+  orderProvider?: "payme" | "click" | "free" | null;
+  orderAmountSom?: number | null;
+  orderStatus?: string | null;
+  requestCategory?: string | null;
+  requestCustomer?: string | null;
 }
 export function fetchAllWalletTransactions() {
   return adminFetch<{ transactions: BackendTangaTx[] }>("/admin/wallets/transactions");
@@ -102,6 +107,13 @@ export interface BackendAdminUser {
   registrationSource?: string | null;
   balance: number; suspended: boolean; verified: boolean; flagCount: number;
   tags: string[]; adminNotes: BackendAdminNote[];
+  profileRewardGranted?: boolean;
+  profileRewardGrantedAt?: string | null;
+  categories?: string[];
+  region?: string | null;
+  district?: string | null;
+  serviceAreaV2?: { toshkent_city: { all: boolean; districts: string[] }; toshkent_region: { all: boolean; cities: string[] } } | null;
+  photoUrl?: string | null;
 }
 export interface BackendUserModeration {
   userId: string; suspended: boolean; verified: boolean; flagCount: number;

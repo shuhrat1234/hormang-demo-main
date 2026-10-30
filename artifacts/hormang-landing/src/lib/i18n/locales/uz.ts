@@ -796,7 +796,7 @@ export const uz = {
     },
     categories: {
       pill: "Yo'nalishlar",
-      titleA: "9 ta",
+      titleA: "4 ta",
       titleB: "xizmat yo'nalishi",
       desc: "O'zingizga kerakli yo'nalishni tanlang — so'rovnoma o'sha yo'nalish bo'yicha savollarni beradi.",
       submitArrow: "So'rov yuborish →",
@@ -805,11 +805,6 @@ export const uz = {
         { id: "tozalash", name: "Tozalash", emoji: "🧹", desc: "Kvartira, hovli, ofis" },
         { id: "avto", name: "Avto xizmat", emoji: "🚗", desc: "Diagnostika, yuvish, ta'mirlash" },
         { id: "kochirish", name: "Ko'chirish / yuk", emoji: "🚚", desc: "Ko'chirish va transport" },
-        { id: "repetitor", name: "Repetitorlar", emoji: "📚", desc: "Til, matematika, musiqa" },
-        { id: "tadbir", name: "Tadbir xizmatlari", emoji: "🎉", desc: "To'y, tug'ilgan kun, korporativ" },
-        { id: "gozallik", name: "Go'zallik", emoji: "💄", desc: "Manikyur, soch, makiyaj" },
-        { id: "enaga", name: "Enagalik", emoji: "👶", desc: "Bola va keksa parvarishi" },
-        { id: "ustachilik", name: "Ustachilik", emoji: "🏗️", desc: "Qurilish va ta'mirlash ishlari" },
       ],
     },
     showcase: {
@@ -1888,6 +1883,7 @@ export const uz = {
     DELETE_REQUEST_NOT_FOUND: "O'chirish so'rovi topilmadi",
     PHONE_BELONGS_TO_OTHER: "Bu raqam boshqa hisob bilan bog'liq",
     PROVIDER_NOT_FOUND: "Ijrochi topilmadi",
+    RATE_LIMIT_EXCEEDED: "SMS yuborish chegarasi oshdi. Iltimos, birozdan so'ng qayta urinib ko'ring.",
   },
   offerBlock: {
     matched:        "Mijoz boshqa ijrochi taklifini qabul qilgan",
