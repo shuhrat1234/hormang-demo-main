@@ -57,3 +57,7 @@ artifacts/api-server/.env
 *.aab
 *.apk
 /Hormang - Google Play package/
+
+# pnpm store
+.pnpm-store/
+

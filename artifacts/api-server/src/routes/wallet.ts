@@ -235,7 +235,7 @@ async function executeFreeClaim(tier: PricingTier, userId: string) {
         .where(eq(pricingTiersTable.id, tier.id))
         .for("update");
 
-      if (lockedTier && lockedTier.salePurchaseCount >= lockedTier.saleLimit) {
+      if (lockedTier && lockedTier.saleLimit != null && lockedTier.salePurchaseCount >= lockedTier.saleLimit) {
         throw new Error("Bepul tarif uchun ajratilgan o'rinlar tugagan");
       }
     }
