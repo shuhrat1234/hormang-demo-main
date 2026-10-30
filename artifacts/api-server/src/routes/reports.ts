@@ -62,10 +62,14 @@ router.post("/", requireAuth, async (req: AuthRequest, res) => {
   }
 });
 
-// ─── GET /count/:userId — how many reports target this user, public ────────
-router.get("/count/:userId", async (req, res) => {
+// ─── GET /count/:userId — how many reports target this user ────────
+router.get("/count/:userId", requireAuth, async (req: AuthRequest, res) => {
   try {
     const userId: string = String(req.params.userId);
+    if (req.user!.role !== "admin" && req.user!.id !== userId) {
+      res.status(403).json({ error: "Ruxsat berilmagan" });
+      return;
+    }
     const rows = await db.select().from(userReportsTable).where(eq(userReportsTable.reportedUserId, userId));
     res.json({ count: rows.length });
   } catch (err) {
