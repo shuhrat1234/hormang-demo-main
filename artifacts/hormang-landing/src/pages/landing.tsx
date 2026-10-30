@@ -220,7 +220,7 @@ function HeroSection() {
                       <ArrowRight className="w-4 h-4" />
                     </Button>
                   </Link>
-                  <Link href="/auth/role">
+                  <a href="/provider/">
                     <Button
                       size="lg"
                       variant="outline"
@@ -228,7 +228,7 @@ function HeroSection() {
                     >
                       {t.landing.hero.becomeProvider}
                     </Button>
-                  </Link>
+                  </a>
                 </>
               )}
             </div>
@@ -1116,7 +1116,7 @@ function ProviderSection() {
         </div>
 
         <div className="text-center">
-          <Link href={isProvider ? "/provider/requests" : "/auth/role"}>
+          <a href={isProvider ? "/provider/requests" : "/provider/"}>
             <Button
               size="lg"
               className="w-full sm:w-auto h-12 px-7 rounded-xl font-semibold text-sm gap-2 bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-200 cursor-pointer"
@@ -1124,7 +1124,7 @@ function ProviderSection() {
               {isProvider ? "Смотреть заказы" : t.landing.provider.becomeProvider}
               <ArrowRight className="w-4 h-4" />
             </Button>
-          </Link>
+          </a>
         </div>
       </div>
     </section>
@@ -1297,7 +1297,7 @@ function CTASection() {
                   <ArrowRight className="w-4 h-4 text-white/80 group-hover:text-white group-hover:translate-x-1 transition-transform duration-150 ease-out shrink-0" />
                 </button>
               </Link>
-              <Link href="/auth/role" className="w-full sm:w-auto">
+              <a href="/provider/" className="w-full sm:w-auto">
                 <button
                   type="button"
                   style={{ color: "#ffffff" }}
@@ -1306,7 +1306,7 @@ function CTASection() {
                   <Sparkles className="w-4 h-4 text-white/90 group-hover:text-white group-hover:rotate-12 group-hover:scale-110 transition-transform duration-300 shrink-0" />
                   <span className="text-white hover:text-white tracking-wide">{t.landing.cta.becomeProvider}</span>
                 </button>
-              </Link>
+              </a>
             </div>
 
             {/* Bottom trust checks */}

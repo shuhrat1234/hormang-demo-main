@@ -143,6 +143,18 @@ function Router() {
         {() => <ProtectedRoute component={AboutSettingsPage} />}
       </Route>
       <Route path="/providers/:id" component={ProviderProfilePage} />
+      <Route path="/provider">
+        {() => {
+          window.location.replace("/provider/");
+          return null;
+        }}
+      </Route>
+      <Route path="/provider/">
+        {() => {
+          window.location.replace("/provider/");
+          return null;
+        }}
+      </Route>
       <Route path="/questionnaire" component={QuestionnairePage} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/questions" component={AdminQuestionsPage} />

@@ -13,6 +13,12 @@
     <priority>0.9</priority>
   </url>
   <url>
+    <loc>https://hormang.co.uz/provider/</loc>
+    <lastmod>2026-10-31</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
     <loc>https://hormang.co.uz/auth/role</loc>
     <lastmod>2026-10-30</lastmod>
     <changefreq>monthly</changefreq>
