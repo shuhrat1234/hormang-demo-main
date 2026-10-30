@@ -24,24 +24,50 @@ function toJson(row: RequestRow) {
   };
 }
 
-async function qualifyingRequests(customerId: string) {
-  return db
-    .select()
-    .from(requestsTable)
-    .where(and(eq(requestsTable.customerId, customerId), ne(requestsTable.status, "cancelled")));
-}
-
 async function computeCooldown(customerId: string) {
-  const qualifying = await qualifyingRequests(customerId);
   const now = Date.now();
-  const recentCount = qualifying.filter((r) => now - r.createdAt.getTime() < ONE_DAY_MS).length;
+  const oneDayAgo = new Date(now - ONE_DAY_MS);
+
+  // 1. Fetch only the single latest request timestamp using the composite index
+  const [latest] = await db
+    .select({ createdAt: requestsTable.createdAt })
+    .from(requestsTable)
+    .where(and(eq(requestsTable.customerId, customerId), ne(requestsTable.status, "cancelled")))
+    .orderBy(desc(requestsTable.createdAt))
+    .limit(1);
+
+  if (!latest) {
+    return { blocked: false, remainingMs: 0, until: null as number | null, durationMs: REQUEST_COOLDOWN_MS, recentCount: 0, extended: false };
+  }
+
+  // 2. Count requests created in the last 24h directly at database level
+  const [recentCountResult] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(requestsTable)
+    .where(
+      and(
+        eq(requestsTable.customerId, customerId),
+        ne(requestsTable.status, "cancelled"),
+        sql`${requestsTable.createdAt} >= ${oneDayAgo}`,
+      ),
+    );
+
+  const recentCount = recentCountResult?.count ?? 0;
   const extended = recentCount >= REQUEST_EXTENDED_THRESHOLD;
   const durationMs = extended ? REQUEST_EXTENDED_COOLDOWN_MS : REQUEST_COOLDOWN_MS;
-  const latest = qualifying.slice().sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
-  if (!latest) return { blocked: false, remainingMs: 0, until: null as number | null, durationMs, recentCount, extended };
+
   const elapsed = now - latest.createdAt.getTime();
-  if (elapsed >= durationMs) return { blocked: false, remainingMs: 0, until: null as number | null, durationMs, recentCount, extended };
-  return { blocked: true, remainingMs: durationMs - elapsed, until: latest.createdAt.getTime() + durationMs, durationMs, recentCount, extended };
+  if (elapsed >= durationMs) {
+    return { blocked: false, remainingMs: 0, until: null as number | null, durationMs, recentCount, extended };
+  }
+  return {
+    blocked: true,
+    remainingMs: durationMs - elapsed,
+    until: latest.createdAt.getTime() + durationMs,
+    durationMs,
+    recentCount,
+    extended,
+  };
 }
 
 // ─── GET /popularity — per-category request/offer/completed counts, public ─

@@ -206,8 +206,11 @@
       scroll-behavior: auto !important;
     }
   }
+  html, body {
+    overflow-x: clip;
+  }
   body {
-    @apply font-sans antialiased bg-background text-foreground overflow-x-hidden;
+    @apply font-sans antialiased bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 

@@ -1,0 +1,351 @@
+export type Lang = "uz" | "ru" | "en";
+
+const uz = {
+  meta: {
+    title: "Hormang ijrochilar uchun — Toshkentda mijoz toping, komissiyasiz",
+  },
+  nav: { how: "Qanday ishlaydi", tanga: "Tanga", profile: "Profil", faq: "Savollar", cta: "Ijrochi bo'lish", customer: "Mijozmisiz? →" },
+  hero: {
+    pill: "Toshkentdagi ustalar va mutaxassislar uchun",
+    h1: "Tayyor mijozlarga xizmat ko'rsating",
+    sub: "Hormang — Toshkentdagi mijozlarning tayyor so'rovlari keladigan platforma. So'rovni ko'rasiz, narxingizni taklif qilasiz, ishni olasiz. Hech qanday komissiya va oylik to'lovsiz platforma.",
+    register: "Ijrochi sifatida ro'yxatdan o'tish",
+    telegram: "Telegram botda ochish",
+    checks: ["Ro'yxatdan o'tish bepul", "Daromadingizdan 0% komissiya", "har so'rovga eng birinchi 5 ta taklif"],
+    chip: "Yangi so'rov: Tozalash · Chilonzor",
+  },
+  what: {
+    title: "Hormang nima?",
+    cards: [
+      ["Mijoz so'rov qoldiradi", "Mijoz bir necha savolga javob beradi: qanday ish, qayerda, qachon. Bu bepul."],
+      ["Siz taklif yuborasiz", "Sizga mos so'rovga narx va izoh bilan taklif yuborasiz. Taklif uchun ozgina Tanga sarflanadi."],
+      ["Mijoz tanlaydi", "Mijoz takliflarni, reytinglar va portfolioni solishtirib, eng mosini tanlaydi va siz bilan bog'lanadi."],
+    ],
+  },
+  how: {
+    title: "Qanday ishlaydi",
+    caption: "Mijoz shu yerda so'rov yaratadi",
+    shortSteps: ["Hudud", "So'rov", "Taklif", "Tanlov", "Sharh"],
+    steps: [
+      ["Profil va hududlaringizni tanlang", "Qaysi xizmatlarni ko'rsatishingiz va Toshkentning qaysi tumanlarida ishlashingizni belgilaysiz. Shunda faqat sizga tegishli so'rovlar keladi."],
+      ["Mos so'rovlar keladi", "Mijoz so'rovining barcha tafsilotlari: ish turi, hajmi, manzili va izohi. Yangi so'rovlar haqida darhol bildirishnoma olasiz."],
+      ["Narxingizni taklif qiling", "Narx va qisqa xabar yozasiz. Taklif qancha Tanga turishi yuborishdan oldin ko'rsatiladi — kutilmagan to'lov yo'q."],
+      ["Mijoz sizni tanlaydi", "Mijoz ko'pi bilan 5 ta taklifni solishtiradi: narx, reyting va portfolio. Tanlasa, chat orqali kelishib olasiz."],
+      ["Ishni bajaring, obro' to'plang", "Har bir bajarilgan ishdan keyin mijoz baho beradi. Sharhlar va portfolio keyingi mijozlarni sizga olib keladi."],
+    ],
+  },
+  tanga: {
+    eyebrow: "Tanga — oddiy va shaffof",
+    h2: "Faqat taklif yuborganingizda to'laysiz",
+    text: "Tanga — Hormang ichidagi oldindan to'lanadigan token. Uni paket bilan sotib olasiz va mos so'rovga taklif yuborganingizda sarflaysiz. Ishdan topgan pulingiz to'liq sizniki.",
+    rows: [
+      ["Komissiya yo'q", "Mijoz sizga to'g'ridan-to'g'ri to'laydi. Hormang daromadingizdan ulush olmaydi."],
+      ["Oylik obuna yo'q", "Ishlamagan oyingiz uchun hech narsa to'lamaysiz."],
+      ["Narx oldindan ko'rinadi", "Taklif narxi ish turiga bog'liq va kamida 2 Tanga. Yuborishdan oldin aniq ko'rasiz."],
+      ["Bonus Tangalar", "Profilni 100% to'ldirsangiz +5 Tanga, Hormangga taklif qilgan har bir do'stingiz uchun +3 Tanga (5 kishigacha)."],
+    ],
+    calc: "Daromad kalkulyatori",
+    price: "Ish narxi (so'm)",
+    youGet: "Siz olasiz",
+    commission: "Hormang komissiyasi",
+    otherCut: "Boshqa platformalar (15% komissiya)",
+    savings: "Hormang bilan tejalgan summa",
+    currency: "so'm",
+    note: "Faqat taklif yuborish uchun Tanga sarflanadi",
+    pay: "To'lov Payme yoki Click orqali.",
+  },
+  profile: {
+    title: "Profilingiz — sizning vitrinangiz",
+    tabs: ["Portfolio", "Bosh sahifa", "Nishonlar"],
+    bullets: [
+      "Portfolio: ishlaringiz rasmlari albomlarda",
+      "Reyting va sharhlar: sifat, muomala va narx bo'yicha",
+      "Nishonlar: Tasdiqlangan, Ishonchli ijrochi, Top ijrochi va boshqalar",
+      "Profilni to'ldiring — +5 Tanga bonus oling",
+    ],
+  },
+  why: {
+    title: "Nega Hormang?",
+    old: "Odatdagi yo'l",
+    neu: "Hormang bilan",
+    rows: [
+      ["Mijoz qidirib e'lon berasiz, reklamaga pul sarflaysiz", "Tayyor so'rovlar o'zi keladi"],
+      ["Har ishdan komissiya yoki oylik to'lov", "Komissiya va oylik to'lov yo'q"],
+      ["Yuzlab raqobatchilar orasida yo'qolasiz", "har so'rovga eng birinchi 5 ta taklif"],
+      ["Tanishlar tavsiyasiga bog'liqsiz", "Reyting va portfolio sizni o'zi tanishtiradi"],
+    ],
+  },
+  start: {
+    title: "Boshlash 5 daqiqa",
+    steps: [
+      "Telefon raqam bilan ro'yxatdan o'ting",
+      "Xizmatlaringizni tanlang",
+      "Ishlaydigan tumanlaringizni belgilang",
+      "Rasm, bio va portfolio qo'shing (+5 Tanga)",
+      "Tanga to'ldiring va taklif yuboring",
+    ],
+    cta: "Hozir boshlash",
+  },
+  faq: {
+    title: "Savollar",
+    items: [
+      ["Ro'yxatdan o'tish pullikmi?", "Yo'q, bepul. Faqat mijozga taklif yuborganingizda Tanga sarflanadi."],
+      ["Hormang daromadimdan foiz oladimi?", "Yo'q. Mijoz sizga to'g'ridan-to'g'ri to'laydi, Hormang komissiya olmaydi va oylik to'lov yo'q."],
+      ["Bitta taklif qancha turadi?", "Ish turiga qarab farq qiladi, kamida 2 Tanga. Aniq narx taklif formasida yuborishdan oldin ko'rsatiladi."],
+      ["Tangani qanday sotib olaman?", "Ilovadagi Hamyon bo'limida paketni tanlab, Payme yoki Click orqali to'laysiz."],
+      ["Qaysi hududlarda ishlaydi?", "Hozircha Toshkent shahrida. Profilingizda ishlaydigan tumanlaringizni tanlaysiz."],
+      ["Mijozlar meni qanday tanlaydi?", "Narxingiz, xabaringiz, reytingingiz, sharhlar va portfolioingizga qarab. Shuning uchun profilni to'liq to'ldirish muhim."],
+    ],
+  },
+  final: { h2: "Birinchi mijozingiz allaqachon kutmoqda", sub: "Ro'yxatdan o'ting, xizmatlaringizni tanlang va bugunoq so'rovlarni ko'ring." },
+  footer: { desc: "Toshkentdagi xizmatlar bozori", customers: "Mijozlar uchun", bot: "Telegram bot", login: "Kirish" },
+  alt: {
+    s01: "Ijrochining so'rovlar ro'yxati: yangi mijoz so'rovlari va «Taklif yuborish» tugmasi",
+    s02: "Taklif formasi: narx, xabar va taklif necha Tanga turishi ko'rsatilgan banner",
+    s03: "Mijoz ko'radigan ekran: ijrochi taklifi narxi va «Qabul qilish» tugmasi",
+    s04: "Ijrochining ochiq profili: rasm, reyting, tasdiq belgisi, bio va portfolio",
+    s05: "Ijrochi sharhlari: sifat, muomala va adolatli narx bo'yicha baholar",
+    s06: "Hamyon kartasi: Tanga balansi",
+    s07: "Ijrochi bosh sahifasi: profil to'ldirilishi (+5 Tanga), yaqin ishlar va so'rov statistikasi",
+    s08: "Ijrochi nishonlari ro'yxati va ularni qanday olish",
+    s09: "«Xizmat hududlarim»: Toshkent tumanlarini tanlash",
+    s10: "Mijoz so'rov yaratishda xizmat turini tanlaydi",
+    coin: "Tanga tangasi",
+  },
+};
+
+export type Copy = typeof uz;
+
+const ru: Copy = {
+  meta: {
+    title: "Hormang для исполнителей — клиенты в Ташкенте без комиссии",
+  },
+  nav: { how: "Как это работает", tanga: "Tanga", profile: "Профиль", faq: "Вопросы", cta: "Стать исполнителем", customer: "Вы клиент? →" },
+  hero: {
+    pill: "Для мастеров и специалистов Ташкента",
+    h1: "Клиенты сами вам пишут",
+    sub: "Hormang — платформа, куда приходят готовые заявки клиентов Ташкента. Вы смотрите заявку, предлагаете цену и получаете заказ. Платформа без комиссии и ежемесячной оплаты.",
+    register: "Зарегистрироваться как исполнитель",
+    telegram: "Открыть в Telegram-боте",
+    checks: ["Регистрация бесплатная", "0% комиссии с вашего дохода", "Только первые 5 откликов на заявку"],
+    chip: "Новая заявка: Уборка · Чиланзар",
+  },
+  what: {
+    title: "Что такое Hormang?",
+    cards: [
+      ["Клиент оставляет заявку", "Клиент отвечает на несколько вопросов: какая работа, где и когда. Для него это бесплатно."],
+      ["Вы отправляете предложение", "На подходящую заявку вы отправляете цену и комментарий. За отклик списывается немного Tanga."],
+      ["Клиент выбирает", "Клиент сравнивает предложения, рейтинги и портфолио, выбирает лучшее и связывается с вами."],
+    ],
+  },
+  how: {
+    title: "Как это работает",
+    caption: "Здесь клиент создаёт заявку",
+    shortSteps: ["Районы", "Заявки", "Отклик", "Выбор", "Отзывы"],
+    steps: [
+      ["Выберите услуги и районы", "Укажите, какие услуги вы оказываете и в каких районах Ташкента работаете. Вы будете видеть только подходящие заявки."],
+      ["Приходят подходящие заявки", "Все детали заявки: вид работы, объём, адрес и комментарий. О новых заявках вы узнаёте сразу."],
+      ["Предложите свою цену", "Укажите цену и короткое сообщение. Стоимость отклика в Tanga видна до отправки — без неожиданных списаний."],
+      ["Клиент выбирает вас", "Клиент сравнивает не более 5 предложений: цену, рейтинг и портфолио. Если выбрал вас — договариваетесь в чате."],
+      ["Выполните работу и растите рейтинг", "После каждого заказа клиент ставит оценку. Отзывы и портфолио приводят к вам новых клиентов."],
+    ],
+  },
+  tanga: {
+    eyebrow: "Tanga — просто и прозрачно",
+    h2: "Платите только за отклик",
+    text: "Tanga — предоплаченные кредиты внутри Hormang. Вы покупаете пакет и тратите Tanga, когда откликаетесь на подходящую заявку. Всё, что вы заработали, остаётся вам.",
+    rows: [
+      ["Без комиссии", "Клиент платит вам напрямую. Hormang не берёт долю с вашего дохода."],
+      ["Без абонентской платы", "Не работали в этом месяце — ничего не платите."],
+      ["Цена видна заранее", "Стоимость отклика зависит от вида работы, минимум 2 Tanga. Вы видите её до отправки."],
+      ["Бонусные Tanga", "+5 Tanga за 100% заполненный профиль и +3 Tanga за каждого приглашённого друга (до 5 человек)."],
+    ],
+    calc: "Калькулятор дохода",
+    price: "Стоимость работы (сум)",
+    youGet: "Вы получаете",
+    commission: "Комиссия Hormang",
+    otherCut: "Другие сервисы (15% комиссия)",
+    savings: "Ваша экономия с Hormang",
+    currency: "сум",
+    note: "Tanga списываются только за отправку отклика",
+    pay: "Оплата через Payme или Click.",
+  },
+  profile: {
+    title: "Профиль — ваша витрина",
+    tabs: ["Портфолио", "Главная", "Значки"],
+    bullets: [
+      "Портфолио: фото ваших работ в альбомах",
+      "Рейтинг и отзывы: качество, отношение и цена",
+      "Значки: Подтверждён, Надёжный исполнитель, Топ-исполнитель и другие",
+      "Заполните профиль — получите +5 Tanga",
+    ],
+  },
+  why: {
+    title: "Почему Hormang?",
+    old: "Обычный путь",
+    neu: "С Hormang",
+    rows: [
+      ["Ищете клиентов, тратите деньги на рекламу", "Готовые заявки приходят сами"],
+      ["Комиссия с каждого заказа или ежемесячный платёж", "Нет комиссии и абонентской платы"],
+      ["Теряетесь среди сотен конкурентов", "Только первые 5 откликов на заявку"],
+      ["Зависите от рекомендаций знакомых", "Рейтинг и портфолио представляют вас сами"],
+    ],
+  },
+  start: {
+    title: "Старт за 5 минут",
+    steps: [
+      "Зарегистрируйтесь по номеру телефона",
+      "Выберите свои услуги",
+      "Отметьте районы работы",
+      "Добавьте фото, описание и портфолио (+5 Tanga)",
+      "Пополните Tanga и отправляйте отклики",
+    ],
+    cta: "Начать сейчас",
+  },
+  faq: {
+    title: "Вопросы",
+    items: [
+      ["Регистрация платная?", "Нет, бесплатная. Tanga списываются только когда вы отправляете клиенту предложение."],
+      ["Берёт ли Hormang процент с дохода?", "Нет. Клиент платит вам напрямую, Hormang не берёт комиссию, ежемесячной оплаты нет."],
+      ["Сколько стоит один отклик?", "Зависит от вида работы, минимум 2 Tanga. Точная стоимость показывается в форме перед отправкой."],
+      ["Как купить Tanga?", "В разделе «Кошелёк» выберите пакет и оплатите через Payme или Click."],
+      ["В каких районах работает?", "Пока в Ташкенте. В профиле вы выбираете районы, где работаете."],
+      ["Как клиенты выбирают исполнителя?", "По цене, сообщению, рейтингу, отзывам и портфолио. Поэтому важно заполнить профиль полностью."],
+    ],
+  },
+  final: { h2: "Ваш первый клиент уже ждёт", sub: "Зарегистрируйтесь, выберите услуги и смотрите заявки уже сегодня." },
+  footer: { desc: "Маркетплейс услуг Ташкента", customers: "Для клиентов", bot: "Telegram-бот", login: "Войти" },
+  alt: {
+    s01: "Список заявок исполнителя: новые заявки клиентов и кнопка «Отправить предложение»",
+    s02: "Форма отклика: цена, сообщение и баннер со стоимостью отклика в Tanga",
+    s03: "Экран клиента: предложение исполнителя с ценой и кнопкой «Принять»",
+    s04: "Публичный профиль исполнителя: фото, рейтинг, значок проверки, описание и портфолио",
+    s05: "Отзывы исполнителя с оценками качества, отношения и честной цены",
+    s06: "Карточка кошелька с балансом Tanga",
+    s07: "Главная исполнителя: заполненность профиля (+5 Tanga), ближайшие заказы и статистика заявок",
+    s08: "Список значков исполнителя и как их получить",
+    s09: "«Мои районы работы»: выбор районов Ташкента",
+    s10: "Клиент выбирает категорию при создании заявки",
+    coin: "Монета Tanga",
+  },
+};
+
+const en: Copy = {
+  meta: {
+    title: "Hormang for service providers — get clients in Tashkent, no commission",
+  },
+  nav: { how: "How it works", tanga: "Tanga", profile: "Profile", faq: "FAQ", cta: "Become a provider", customer: "Looking for a service? →" },
+  hero: {
+    pill: "For tradespeople and specialists in Tashkent",
+    h1: "Clients come to you",
+    sub: "Hormang brings you ready-made requests from clients in Tashkent. You see the request, offer your price and get the job. No commission and no monthly fee.",
+    register: "Sign up as a provider",
+    telegram: "Open in Telegram bot",
+    checks: ["Free to sign up", "0% commission on your income", "First 5 offers per request"],
+    chip: "New request: Cleaning · Chilonzor",
+  },
+  what: {
+    title: "What is Hormang?",
+    cards: [
+      ["The client posts a request", "The client answers a few questions: what needs doing, where and when. It's free for them."],
+      ["You send an offer", "On a request that fits you, you send your price and a short note. Each offer uses a little Tanga."],
+      ["The client chooses", "The client compares offers, ratings and portfolios, picks the best fit and gets in touch with you."],
+    ],
+  },
+  how: {
+    title: "How it works",
+    caption: "This is where clients create a request",
+    shortSteps: ["Districts", "Requests", "Offer", "Choice", "Reviews"],
+    steps: [
+      ["Choose your services and districts", "Pick the services you offer and the Tashkent districts you work in. You'll only get requests that match."],
+      ["Matching requests arrive", "Every detail of the request: type of job, size, location and notes. You're notified about new requests right away."],
+      ["Offer your price", "Write your price and a short message. The Tanga cost of the offer is shown before you send it, so there are no surprise charges."],
+      ["The client picks you", "The client compares at most 5 offers: price, rating and portfolio. If they choose you, you agree on details in chat."],
+      ["Do the job, build your reputation", "After every job the client leaves a rating. Reviews and your portfolio bring you the next clients."],
+    ],
+  },
+  tanga: {
+    eyebrow: "Tanga — simple and transparent",
+    h2: "You pay only when you send an offer",
+    text: "Tanga is Hormang's prepaid in-app credit. You buy it in packages and spend it when you send an offer on a request that fits you. Everything you earn from the job is yours.",
+    rows: [
+      ["No commission", "The client pays you directly. Hormang takes no share of your income."],
+      ["No monthly subscription", "If you don't work this month, you pay nothing."],
+      ["Price shown upfront", "An offer's cost depends on the job and is at least 2 Tanga. You see the exact amount before sending."],
+      ["Bonus Tanga", "+5 Tanga for a 100% complete profile and +3 Tanga for each friend you invite to Hormang (up to 5)."],
+    ],
+    calc: "Earnings calculator",
+    price: "Job price (UZS)",
+    youGet: "You receive",
+    commission: "Hormang commission",
+    otherCut: "Other platforms (15% cut)",
+    savings: "Your savings with Hormang",
+    currency: "UZS",
+    note: "Tanga is spent only on sending offers",
+    pay: "Pay with Payme or Click.",
+  },
+  profile: {
+    title: "Your profile is your shop window",
+    tabs: ["Portfolio", "Home", "Badges"],
+    bullets: [
+      "Portfolio: photos of your work, organised in albums",
+      "Ratings and reviews: quality, attitude and price",
+      "Badges: Verified, Trusted provider, Top provider and more",
+      "Complete your profile and get a +5 Tanga bonus",
+    ],
+  },
+  why: {
+    title: "Why Hormang?",
+    old: "The usual way",
+    neu: "With Hormang",
+    rows: [
+      ["You hunt for clients and pay for ads", "Ready-made requests come to you"],
+      ["Commission on every job or a monthly fee", "No commission, no monthly fee"],
+      ["You get lost among hundreds of competitors", "First 5 offers per request"],
+      ["You depend on word of mouth", "Your rating and portfolio speak for you"],
+    ],
+  },
+  start: {
+    title: "Get started in 5 minutes",
+    steps: [
+      "Sign up with your phone number",
+      "Choose your services",
+      "Mark the districts you work in",
+      "Add a photo, bio and portfolio (+5 Tanga)",
+      "Top up Tanga and send offers",
+    ],
+    cta: "Start now",
+  },
+  faq: {
+    title: "FAQ",
+    items: [
+      ["Does it cost anything to sign up?", "No, it's free. Tanga is spent only when you send an offer to a client."],
+      ["Does Hormang take a cut of my income?", "No. The client pays you directly. Hormang takes no commission and there's no monthly fee."],
+      ["How much does one offer cost?", "It depends on the type of job, with a minimum of 2 Tanga. The exact cost is shown in the offer form before you send it."],
+      ["How do I buy Tanga?", "Open Wallet in the app, choose a package and pay with Payme or Click."],
+      ["Which areas does it cover?", "Tashkent city for now. In your profile you choose the districts you work in."],
+      ["How do clients choose a provider?", "By your price, message, rating, reviews and portfolio. That's why a complete profile matters."],
+    ],
+  },
+  final: { h2: "Your first client is already waiting", sub: "Sign up, choose your services and start seeing requests today." },
+  footer: { desc: "Tashkent's services marketplace", customers: "For clients", bot: "Telegram bot", login: "Log in" },
+  alt: {
+    s01: "Provider's request inbox: new client requests with a Send offer button",
+    s02: "Offer form: price, message and a banner showing the offer's Tanga cost",
+    s03: "Client's screen: the provider's offer with price and an Accept button",
+    s04: "Provider's public profile: photo, rating, verified badge, bio and portfolio",
+    s05: "Provider reviews with ratings for quality, attitude and fair price",
+    s06: "Wallet card with Tanga balance",
+    s07: "Provider home: profile completion (+5 Tanga), upcoming jobs and request stats",
+    s08: "List of provider badges and how to earn them",
+    s09: "Service areas: choosing Tashkent districts",
+    s10: "Client choosing a category when creating a request",
+    coin: "Tanga coin",
+  },
+};
+
+export const COPY: Record<Lang, Copy> = { uz, ru, en };
+export const HTML_LANG: Record<Lang, string> = { uz: "uz-Latn", ru: "ru", en: "en" };
+export const LANG_LABEL: Record<Lang, string> = { uz: "O'zbek", ru: "Русский", en: "English" };
+
+export const formatSum = (n: number) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
