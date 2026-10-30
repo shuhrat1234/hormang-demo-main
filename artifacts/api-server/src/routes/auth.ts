@@ -28,6 +28,8 @@ const REVIEWER_TEST_PHONE_DIGITS = "998901234567";
 const REVIEWER_TEST_OTP = "123456";
 
 function isReviewerPhone(phone: string): boolean {
+  const isReviewerBypassAllowed = !env.isProduction || process.env.ENABLE_REVIEWER_BYPASS === "true";
+  if (!isReviewerBypassAllowed) return false;
   return phone.replace(/\D/g, "") === REVIEWER_TEST_PHONE_DIGITS;
 }
 
@@ -144,7 +146,8 @@ function storeOtp(channel: OtpChannel, destination: string, purpose: string): st
 }
 
 function verifyOtp(channel: OtpChannel, destination: string, code: string, purpose: string): boolean {
-  if (channel === "sms" && isReviewerPhone(destination) && code === REVIEWER_TEST_OTP) {
+  const isReviewerBypassAllowed = !env.isProduction || process.env.ENABLE_REVIEWER_BYPASS === "true";
+  if (isReviewerBypassAllowed && channel === "sms" && isReviewerPhone(destination) && code === REVIEWER_TEST_OTP) {
     return true;
   }
   const enableDevOtp = process.env.ENABLE_DEV_OTP === "true" && !env.isProduction;

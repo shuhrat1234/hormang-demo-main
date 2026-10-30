@@ -46,7 +46,7 @@ export function fetchOpenRequests() {
   return apiFetch<{ requests: BackendRequest[] }>("/requests/open");
 }
 export function fetchRequestById(id: string) {
-  return apiFetch<{ request: BackendRequest }>(`/requests/${id}`, { auth: false });
+  return apiFetch<{ request: BackendRequest }>(`/requests/${id}`);
 }
 export function fetchRequestOfferCount(id: string) {
   return apiFetch<{ count: number }>(`/requests/${id}/offer-count`, { auth: false });

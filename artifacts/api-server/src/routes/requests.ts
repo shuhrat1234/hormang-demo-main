@@ -129,8 +129,8 @@ router.get("/open", requireAuth, async (_req, res) => {
   }
 });
 
-// ─── GET /:id — single request, public (chat/offer detail views need this) ─
-router.get("/:id", async (req, res) => {
+// ─── GET /:id — single request (chat/offer detail views need this) ─
+router.get("/:id", requireAuth, async (req: AuthRequest, res) => {
   try {
     const id: string = String(req.params.id);
     const [row] = await db.select().from(requestsTable).where(eq(requestsTable.id, id)).limit(1);
@@ -138,6 +138,16 @@ router.get("/:id", async (req, res) => {
       res.status(404).json({ error: "So'rov topilmadi" });
       return;
     }
+
+    const isOwner = req.user!.id === row.customerId;
+    const isAdmin = req.user!.role === "admin";
+    const isProvider = req.user!.role === "provider";
+
+    if (!isOwner && !isAdmin && !isProvider) {
+      res.status(403).json({ error: "Ruxsat berilmagan" });
+      return;
+    }
+
     const [withCount] = await withOfferCounts([row]);
     res.json({ request: withCount });
   } catch (err) {
