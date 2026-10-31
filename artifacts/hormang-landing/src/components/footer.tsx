@@ -1,18 +1,20 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { Instagram, Send, Facebook, MapPin, Mail, Phone } from "lucide-react";
+import { Instagram, Send, Mail } from "lucide-react";
 import { motion } from "framer-motion";
 import { useI18n } from "@/contexts/i18n-context";
+import { useAuth } from "@/contexts/auth-context";
 import { LegalModal, type LegalDocType } from "@/components/legal-modal";
 
 const socialLinks = [
-  { icon: Instagram, href: "https://www.instagram.com/hormangapp", label: "Instagram" },
-  { icon: Send, href: "https://t.me/hormangapp", label: "Telegram" },
-  { icon: Facebook, href: "https://www.facebook.com/hormangapp", label: "Facebook" },
+  { icon: Instagram, href: "https://www.instagram.com/hormang.co.uz", label: "Instagram" },
+  { icon: Send, href: "https://t.me/hormang_web_bot", label: "Telegram" },
 ];
 
 export function Footer() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const { user } = useAuth();
+  const isProvider = user?.role === "provider";
   const [legalDoc, setLegalDoc] = useState<LegalDocType>(null);
 
   const getCustomerLinkProps = (index: number) => {
@@ -25,16 +27,18 @@ export function Footer() {
         return { onClick: () => setLegalDoc("safety"), isAction: true };
       case 3:
       default:
-        return { href: "#showcase", isAnchor: true };
+        return { href: "#faq", isAnchor: true };
     }
   };
 
   const getProviderLinkProps = (index: number) => {
     switch (index) {
       case 0:
-        return { href: "/auth/role", isRoute: true };
+        return { href: isProvider ? "/provider/home" : "/auth/role", isRoute: true };
       case 1:
-        return { href: "/plans", isRoute: true };
+        return isProvider
+          ? { href: "/plans", isRoute: true }
+          : { href: "#pricing", isAnchor: true };
       case 2:
       default:
         return { onClick: () => setLegalDoc("terms"), isAction: true };
@@ -146,26 +150,24 @@ export function Footer() {
                 {t.footer.contact}
               </h4>
               <ul className="space-y-3.5 text-sm text-gray-500">
-                <li className="flex items-start gap-3">
-                  <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-blue-500" />
-                  <span>{t.footer.address}</span>
-                </li>
-                <li className="flex items-center gap-3">
-                  <Phone className="w-4 h-4 flex-shrink-0 text-blue-500" />
-                  <a
-                    href="tel:+998712000000"
-                    className="hover:text-blue-600 transition-colors font-medium"
-                  >
-                    +998 (71) 200-00-00
-                  </a>
-                </li>
                 <li className="flex items-center gap-3">
                   <Mail className="w-4 h-4 flex-shrink-0 text-blue-500" />
                   <a
-                    href="mailto:support@hormang.uz"
+                    href="mailto:support@hormang.co.uz"
                     className="hover:text-blue-600 transition-colors font-medium"
                   >
-                    support@hormang.uz
+                    support@hormang.co.uz
+                  </a>
+                </li>
+                <li className="flex items-center gap-3">
+                  <Send className="w-4 h-4 flex-shrink-0 text-blue-500" />
+                  <a
+                    href="https://t.me/hormang_web_bot"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-blue-600 transition-colors font-medium"
+                  >
+                    @hormang_web_bot
                   </a>
                 </li>
               </ul>

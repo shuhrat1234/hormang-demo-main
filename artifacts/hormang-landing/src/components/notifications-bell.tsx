@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Bell, Sparkles, X, ChevronRight, Eye, Send } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import ReactMarkdown from "react-markdown";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/auth-context";
 import { useI18n } from "@/contexts/i18n-context";
@@ -349,9 +350,9 @@ export function NotificationsBell({
                 <h2 className="font-extrabold text-gray-900 text-lg leading-snug">
                   {getLocalizedText(selectedAnn.titleLocalized ?? selectedAnn.title, locale)}
                 </h2>
-                <p className="text-sm text-gray-600 whitespace-pre-wrap leading-relaxed">
-                  {getLocalizedText(selectedAnn.contentLocalized ?? selectedAnn.content, locale)}
-                </p>
+                <div className="text-sm text-gray-600 leading-relaxed space-y-2.5 break-words [&>h1]:text-lg [&>h2]:text-base [&>h3]:text-sm [&>h4]:text-sm [&>h1]:font-bold [&>h2]:font-bold [&>h3]:font-bold [&>h4]:font-bold [&>h1]:text-gray-900 [&>h2]:text-gray-900 [&>h3]:text-gray-900 [&>h4]:text-gray-900 [&>ul]:list-disc [&>ul]:pl-5 [&>ol]:list-decimal [&>ol]:pl-5 [&>p]:mb-2 [&>strong]:font-bold [&>strong]:text-gray-900">
+                  <ReactMarkdown>{getLocalizedText(selectedAnn.contentLocalized ?? selectedAnn.content, locale)}</ReactMarkdown>
+                </div>
                 {selectedAnn.expiresAt && (
                   <p className="text-[10px] text-gray-400">
                     {locale === "ru" ? "Срок:" : locale === "en" ? "Expires:" : "Muddat:"}{" "}

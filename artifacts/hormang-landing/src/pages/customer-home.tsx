@@ -3,6 +3,7 @@ import { useStoreRefresh } from "@/hooks/use-store-refresh";
 import { BottomNav } from "@/components/bottom-nav";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
+import ReactMarkdown from "react-markdown";
 import logoImg from "/hormang-logo.png";
 import {
   ClipboardList, Inbox, CheckCircle2,
@@ -81,7 +82,9 @@ function AnnouncementModal({ ann, onClose }: { ann: Announcement; onClose: () =>
             {ann.isPinned && <span className="text-base">📌</span>}
           </div>
           <h2 className="font-extrabold text-gray-900 text-lg leading-snug">{annTitle}</h2>
-          <p className="text-sm text-gray-600 whitespace-pre-wrap leading-relaxed">{annContent}</p>
+          <div className="text-sm text-gray-600 leading-relaxed space-y-2.5 break-words [&>h1]:text-lg [&>h2]:text-base [&>h3]:text-sm [&>h4]:text-sm [&>h1]:font-bold [&>h2]:font-bold [&>h3]:font-bold [&>h4]:font-bold [&>h1]:text-gray-900 [&>h2]:text-gray-900 [&>h3]:text-gray-900 [&>h4]:text-gray-900 [&>ul]:list-disc [&>ul]:pl-5 [&>ol]:list-decimal [&>ol]:pl-5 [&>p]:mb-2 [&>strong]:font-bold [&>strong]:text-gray-900">
+            <ReactMarkdown>{annContent}</ReactMarkdown>
+          </div>
           {ann.expiresAt && (
             <p className="text-[10px] text-gray-400">
               {tFormat(ev.deadlineTpl, { date: new Date(ann.expiresAt).toLocaleDateString("uz-UZ") })}

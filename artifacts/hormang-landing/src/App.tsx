@@ -106,9 +106,7 @@ function Router() {
       <Route path="/auth/login">
         {() => <PublicOnlyRoute component={LoginPage} />}
       </Route>
-      <Route path="/auth/register">
-        {() => <PublicOnlyRoute component={RegisterPage} />}
-      </Route>
+      <Route path="/auth/register" component={RegisterPage} />
       <Route path="/auth/migrate">
         {() => <PublicOnlyRoute component={MigratePage} />}
       </Route>

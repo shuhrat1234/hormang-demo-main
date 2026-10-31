@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -48,7 +48,7 @@ type InfoData = z.infer<ReturnType<typeof makeInfoSchema>>;
 type ProviderData = z.infer<ReturnType<typeof makeProviderSchema>>;
 
 function InfoForm({ onDone }: { role: "buyer" | "provider"; onDone: (d: InfoData) => void }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { register, handleSubmit, formState: { errors } } = useForm<InfoData>({
     resolver: zodResolver(makeInfoSchema(t)),
   });
@@ -71,12 +71,34 @@ function InfoForm({ onDone }: { role: "buyer" | "provider"; onDone: (d: InfoData
       </div>
       <div className="flex items-start gap-2">
         <input {...register("agreeTerms")} id="terms" type="checkbox"
-          className="w-4 h-4 mt-0.5 rounded accent-primary border-border" />
-        <label htmlFor="terms" className="text-sm text-muted-foreground leading-relaxed cursor-pointer">
-          {t.auth.register.agreementBefore}
-          <span className="text-primary font-semibold hover:underline">{t.auth.register.termsLink}</span>
-          {t.auth.register.agreementConnector}
-          <span className="text-primary font-semibold hover:underline">{t.auth.register.privacyLink}</span>
+          className="w-4 h-4 mt-0.5 rounded accent-primary border-border cursor-pointer" />
+        <label htmlFor="terms" className="text-sm text-muted-foreground leading-relaxed cursor-pointer select-none">
+          {t.auth.register.agreementBefore}{" "}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const lang = locale === "ru" ? "ru" : locale === "en" ? "en" : "uz";
+              window.open(`/hormang-legal-${lang}.html#terms`, "_blank");
+            }}
+            className="text-primary font-semibold hover:underline inline cursor-pointer"
+          >
+            {t.auth.register.termsLink}
+          </button>{" "}
+          {t.auth.register.agreementConnector}{" "}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const lang = locale === "ru" ? "ru" : locale === "en" ? "en" : "uz";
+              window.open(`/hormang-legal-${lang}.html#privacy`, "_blank");
+            }}
+            className="text-primary font-semibold hover:underline inline cursor-pointer"
+          >
+            {t.auth.register.privacyLink}
+          </button>
           {t.auth.register.agreementAfter}
         </label>
       </div>
@@ -291,9 +313,17 @@ export default function RegisterPage() {
   const activeRef = (refCode || getActiveReferralCode()).trim().toUpperCase();
   const returnTo = params.get("returnTo");
   const [, setLocation] = useLocation();
-  const { setAuth, user } = useAuth();
+  const { setAuth, user, loading: authLoading } = useAuth();
   const { t } = useI18n();
   const { toast } = useToast();
+  const initialUserRef = useRef(user);
+
+  useEffect(() => {
+    // If the user was ALREADY logged in when they navigated to /auth/register, redirect them to dashboard
+    if (initialUserRef.current && !authLoading) {
+      setLocation("/dashboard");
+    }
+  }, [authLoading, setLocation]);
 
   function afterAuthRedirect() {
     setLocation(returnTo ? decodeURIComponent(returnTo) : "/dashboard");

@@ -760,7 +760,6 @@ export const en: Dict = {
       "Become a provider",
       "Tariffs and advertising",
       "Platform rules",
-      "Knowledge base",
     ],
     address: "Tashkent, Amir Temur street, 108",
     copyright: "© 2026 Hormang. All rights reserved.",

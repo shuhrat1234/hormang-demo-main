@@ -9,7 +9,7 @@ import {
   ShieldCheck, CreditCard, CheckCircle2, ClipboardList,
   Search, MessageSquare, ArrowRight, Coins, Wallet, Gift,
   Users, Sparkles, X, UserCheck, ListFilter, Award, Check,
-  ChevronDown, ChevronLeft, ChevronRight, Star
+  ChevronDown, ChevronLeft, ChevronRight, Star, HelpCircle
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useI18n } from "@/contexts/i18n-context";
@@ -1389,6 +1389,98 @@ function MobileStickyBar() {
   );
 }
 
+function FaqSection() {
+  const { t, locale } = useI18n();
+  const [openIndex, setOpenIndex] = useState<number | null>(0);
+
+  const title = {
+    uz: "Ko'p so'raladigan savollar",
+    ru: "Часто задаваемые вопросы",
+    en: "Frequently Asked Questions",
+  }[locale] ?? "Ko'p so'raladigan savollar";
+
+  const subtitle = {
+    uz: "Hormang platformasi, to'lovlar va xavfsizlik haqida eng ko'p beriladigan savollar",
+    ru: "Ответы на популярные вопросы о работе сервиса, оплате и гарантиях",
+    en: "Answers to common questions about services, payments, and security",
+  }[locale] ?? "";
+
+  const items = t.faq.items;
+
+  return (
+    <section id="faq" className="py-24 md:py-28 bg-white scroll-mt-24 border-t border-gray-100">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center max-w-2xl mx-auto mb-14">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-700 text-xs font-semibold mb-4">
+            <HelpCircle className="w-3.5 h-3.5 text-blue-600" />
+            <span>FAQ</span>
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight font-display">
+            {title}
+          </h2>
+          <p className="mt-4 text-base text-gray-500 leading-relaxed">
+            {subtitle}
+          </p>
+        </div>
+
+        <div className="space-y-3.5">
+          {items.map((item, idx) => {
+            const isOpen = openIndex === idx;
+            return (
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, y: 12 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.3, delay: idx * 0.05 }}
+                className={`rounded-2xl border transition-all duration-200 overflow-hidden ${
+                  isOpen
+                    ? "bg-blue-50/40 border-blue-200/80 shadow-sm"
+                    : "bg-gray-50/60 border-gray-200/70 hover:border-gray-300 hover:bg-gray-50"
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => setOpenIndex(isOpen ? null : idx)}
+                  className="w-full px-6 py-5 flex items-center justify-between gap-4 text-left cursor-pointer select-none"
+                  aria-expanded={isOpen}
+                >
+                  <span className="font-bold text-gray-900 text-base sm:text-lg">
+                    {item.q}
+                  </span>
+                  <div
+                    className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-200 ${
+                      isOpen
+                        ? "bg-blue-600 text-white rotate-180"
+                        : "bg-white text-gray-500 border border-gray-200"
+                    }`}
+                  >
+                    <ChevronDown className="w-4 h-4" />
+                  </div>
+                </button>
+                <AnimatePresence initial={false}>
+                  {isOpen && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25, ease: "easeInOut" }}
+                    >
+                      <div className="px-6 pb-5 pt-1 text-sm sm:text-base text-gray-600 leading-relaxed border-t border-blue-100/60">
+                        {item.a}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white text-gray-900 pb-16 md:pb-0">
@@ -1400,6 +1492,7 @@ export default function LandingPage() {
       <BuyerBenefitsSection />
       <ProviderSection />
       <TangaSection />
+      <FaqSection />
       <CTASection />
       <Footer />
       <MobileStickyBar />

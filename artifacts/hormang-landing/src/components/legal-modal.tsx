@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useI18n } from "@/contexts/i18n-context";
+import { ExternalLink } from "lucide-react";
 
 export type LegalDocType = "terms" | "privacy" | "safety" | null;
 
@@ -165,9 +166,9 @@ export function LegalModal({ type, open, onOpenChange }: LegalModalProps) {
             en: "3. Dispute Moderation",
           },
           body: {
-            ru: "При возникновении разногласий, оскорблений или подозрений в мошенничестве вы можете пожаловаться на профиль через чат или написать в службу поддержки support@hormang.uz.",
-            uz: "Kelishmovchilik, noo'rin xatti-harakatlar yoki firibgarlik shubhasi tug'ilsa, chat orqali shikoyat yuborishingiz yoki support@hormang.uz manziliga murojaat qilishingiz mumkin.",
-            en: "In case of disputes, misconduct, or fraud suspicions, file a complaint directly in chat or contact support@hormang.uz immediately.",
+            ru: "При возникновении разногласий, оскорблений или подозрений в мошенничестве вы можете пожаловаться на профиль через чат или написать в службу поддержки support@hormang.co.uz.",
+            uz: "Kelishmovchilik, noo'rin xatti-harakatlar yoki firibgarlik shubhasi tug'ilsa, chat orqali shikoyat yuborishingiz yoki support@hormang.co.uz manziliga murojaat qilishingiz mumkin.",
+            en: "In case of disputes, misconduct, or fraud suspicions, file a complaint directly in chat or contact support@hormang.co.uz immediately.",
           },
         },
       ],
@@ -175,17 +176,29 @@ export function LegalModal({ type, open, onOpenChange }: LegalModalProps) {
   }[type];
 
   const loc = locale === "uz" || locale === "ru" || locale === "en" ? locale : "uz";
+  const fullDocAnchor = type === "privacy" ? "privacy" : "terms";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] p-0 overflow-hidden rounded-2xl sm:rounded-3xl">
-        <DialogHeader className="p-6 pb-4 border-b border-gray-100 bg-gray-50/50">
-          <DialogTitle className="text-xl font-extrabold text-gray-900 tracking-tight">
-            {content.title[loc]}
-          </DialogTitle>
-          <DialogDescription className="text-xs text-gray-500 font-medium">
-            {content.updated[loc]}
-          </DialogDescription>
+      <DialogContent className="max-w-2xl max-h-[85vh] p-0 overflow-hidden rounded-2xl sm:rounded-3xl flex flex-col">
+        <DialogHeader className="p-6 pb-4 border-b border-gray-100 bg-gray-50/50 flex flex-row items-center justify-between gap-4">
+          <div>
+            <DialogTitle className="text-xl font-extrabold text-gray-900 tracking-tight">
+              {content.title[loc]}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-gray-500 font-medium mt-1">
+              {content.updated[loc]}
+            </DialogDescription>
+          </div>
+          <a
+            href={`/hormang-legal-${loc}.html#${fullDocAnchor}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors shrink-0"
+          >
+            <span>{loc === "ru" ? "Полный документ" : loc === "en" ? "Full Document" : "To'liq hujjat"}</span>
+            <ExternalLink className="w-3.5 h-3.5" />
+          </a>
         </DialogHeader>
 
         <ScrollArea className="p-6 max-h-[60vh] space-y-6">
@@ -202,6 +215,25 @@ export function LegalModal({ type, open, onOpenChange }: LegalModalProps) {
             ))}
           </div>
         </ScrollArea>
+
+        <div className="p-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between gap-3 text-xs text-gray-500">
+          <a
+            href={`/hormang-legal-${loc}.html#${fullDocAnchor}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 font-semibold text-blue-600 hover:text-blue-700 hover:underline"
+          >
+            <span>{loc === "ru" ? "Открыть официальную версию (HTML)" : loc === "en" ? "Open official legal agreement (HTML)" : "Rasmiy shartnoma va siyosatni ochish (HTML)"}</span>
+            <ExternalLink className="w-3 h-3" />
+          </a>
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="px-4 py-1.5 rounded-xl bg-white border border-gray-200 font-semibold text-gray-700 hover:bg-gray-100 transition-colors"
+          >
+            {loc === "ru" ? "Закрыть" : loc === "en" ? "Close" : "Yopish"}
+          </button>
+        </div>
       </DialogContent>
     </Dialog>
   );

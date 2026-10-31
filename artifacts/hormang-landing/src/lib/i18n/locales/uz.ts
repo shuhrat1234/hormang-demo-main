@@ -759,7 +759,6 @@ export const uz = {
       "Ijrochi bo'lish",
       "Tarif va reklama",
       "Platforma qoidalari",
-      "Bilimlar bazasi",
     ],
     address: "Toshkent, Amir Temur ko'chasi, 108",
     copyright: "© 2026 Hormang. Barcha huquqlar himoyalangan.",
